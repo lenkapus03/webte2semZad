@@ -1,7 +1,41 @@
-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
+ -----> novy config v <------
+/var/www/configs/config.php
+
+<?php
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'pdf_db');
+define('DB_USER', 'xpuskasova');
+define('DB_PASS', 'Arrow#7135');
+
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
+function getPDO(){
+
+    try {
+        $pdo = new PDO(
+            "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+            DB_USER,
+            DB_PASS,
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_PERSISTENT => false
+            ]
+        );
+    } catch (PDOException $e) {
+        error_log("Database connection failed: " . $e->getMessage());
+        die("Database connection error. Please try again later.");
+    }
 
 
+return $pdo;
 
 
+}
+?>
 
-zmeeeenaaaaaaaaaa
+
+-------------------------------------------------------------------------------------
