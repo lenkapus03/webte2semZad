@@ -1,19 +1,16 @@
- -----> novy config v <------
-/var/www/configs/config.php
-
 <?php
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'pdf_db');
-define('DB_USER', 'xpuskasova');
-define('DB_PASS', 'Arrow#7135');
+// config.php
 
-error_reporting(E_ALL);
-ini_set('display_errors', '0');
-ini_set('log_errors', '1');
+// Database credentials
+define('DB_HOST', 'mysql');        // The MySQL container hostname
+define('DB_NAME', 'pdf_db');       // The database name
+define('DB_USER', 'myuser');       // The database username
+define('DB_PASS', 'mypassword');  // The database password
 
-function getPDO(){
-
+// Function to get PDO connection
+function getPDO() {
     try {
+        // Create PDO connection
         $pdo = new PDO(
             "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
             DB_USER,
@@ -26,16 +23,10 @@ function getPDO(){
             ]
         );
     } catch (PDOException $e) {
+        // Log the error and provide a generic error message to the user
         error_log("Database connection failed: " . $e->getMessage());
         die("Database connection error. Please try again later.");
     }
 
-
-return $pdo;
-
-
+    return $pdo;
 }
-?>
-
-
--------------------------------------------------------------------------------------

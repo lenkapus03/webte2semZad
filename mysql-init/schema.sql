@@ -21,6 +21,9 @@ SET time_zone = "+00:00";
 -- Databáza: `pdf_db`
 --
 CREATE DATABASE IF NOT EXISTS `pdf_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+GRANT ALL PRIVILEGES ON pdf_db.* TO 'myuser'@'%';
+FLUSH PRIVILEGES;
+
 USE `pdf_db`;
 
 -- --------------------------------------------------------

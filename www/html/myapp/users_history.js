@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadUserHistory();
 
     function loadUserHistory() {
-        fetch("../backend/users_history.php", {
+        fetch("/myapp/backend/users_history.php", {
             credentials: "include"
         })
             .then(response => {
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function deleteHistoryEntry(username, time, rowElement) {
-        fetch("../backend/users_history.php", {
+        fetch("/myapp/backend/users_history.php", {
             method: "DELETE",
             credentials: "include",
             headers: {

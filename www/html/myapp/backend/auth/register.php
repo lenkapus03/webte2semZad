@@ -43,6 +43,9 @@ try {
     );
     $stmt->execute([$username, $hashedPassword, $role, $api_key]);
 
+    $userId = $pdo->lastInsertId();
+
+    $_SESSION['user_id'] = $userId;
     $_SESSION['username'] = $username;
     $_SESSION['role'] = $role;
     $_SESSION['api_key'] = $api_key;
@@ -53,7 +56,7 @@ try {
         'success' => true,
         'api_key' => $api_key,
         'user' => [
-            'id' => $_SESSION['user_id'],
+            'id' => 'user_id',
             'username' => $username
         ]
     ];

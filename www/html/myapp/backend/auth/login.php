@@ -41,9 +41,8 @@ try {
 
     $response = [
         'success' => true,
-        'redirect' => '../../frontend/index.php',
+        'redirect' => '/myapp/index.php',
         'user' => [
-            'id' => $user['id'],
             'username' => $user['username']
         ]
     ];

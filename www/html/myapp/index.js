@@ -12,7 +12,7 @@ document.getElementById('regenApiKey').addEventListener('click', async () => {
     apiKeyDisplay.style.display = 'none';
 
     try {
-        const response = await fetch('../backend/regenerate_api_key.php', {
+        const response = await fetch('/myapp/backend/regenerate_api_key.php', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Accept': 'application/json' }

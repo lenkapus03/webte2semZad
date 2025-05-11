@@ -1,7 +1,7 @@
 <?php
 
 require_once  "auth/api_key.php";
-require_once "auth/utilities.php";
+//require_once '/myapp/backend/auth/utilities.php';
 
 header('Content-Type: application/json');
 

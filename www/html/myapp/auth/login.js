@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
             formDataToSend.append("username", username);
             formDataToSend.append("password", password);
 
-            const response = await fetch("../../backend/auth/login.php", {
+            const response = await fetch("/myapp/backend/auth/login.php", {
                 method: "POST",
                 body: formDataToSend
             });

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  nginx:
+    build: ./nginx/
+    container_name: nginx-container
+    ports:
+      - "8080:80"
+    depends_on:
+      - php
+    volumes:
+      - ./www/html:/var/www/html
+      - ./config.php:/var/www/config.php
+
+  php:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: php-container
+    expose:
+      - "9000"
+    depends_on:
+      - mysql
+    volumes:
+      - ./www/html:/var/www/html
+      - ./config.php:/var/www/config.php
+    environment:
+      DB_HOST: mysql
+      DB_NAME: pdf_db
+      DB_USER: myuser
+      DB_PASS: mypassword
+      command: sh -c "until mysqladmin ping -hmysql -umyuser -pmypassword --silent; do echo 'Waiting for MySQL...'; sleep 2; done; php-fpm"
+
+  mysql:
+    image: mysql:8.4
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    ports:
+      - "13306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      interval: 5s
+      retries: 10
+
+volumes:
+  mysql_data: {}

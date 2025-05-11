@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch("../../backend/auth/register.php", {
+            const response = await fetch("/myapp/backend/auth/register.php", {
                 method: "POST",
                 body: formData
             });
@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     apiKeyDisplay.style.display = 'block';
                 }
                 if (data.user) {
-                    window.location.href = '/../index.php';
+                    window.location.href = '/myapp/index.php';
                 }
             } else if (data.error) {
                 displayErrors(errorMessagesDiv, errorList, Array.isArray(data.error) ? data.error : [data.error]); // Updated function call

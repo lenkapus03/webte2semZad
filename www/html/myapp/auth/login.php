@@ -2,7 +2,7 @@
 session_start();
 
 if (isset($_SESSION['username'])) {
-    header("Location: ../index.php");
+    header("Location: /myapp/index.php");
     exit;
 }
 ?>
@@ -15,7 +15,7 @@ if (isset($_SESSION['username'])) {
 </head>
 <body>
 <h2>Login</h2>
-<form action="../../backend/auth/login.php" method="post" id="loginForm">
+<form action="/myapp/backend/auth/login.php" method="post" id="loginForm">
     <label for="username">Username:</label><br>
     <input type="text" name="username" id="username" placeholder="Username" required><br><br>
 

@@ -1,5 +1,5 @@
 <?php
-require "/var/www/configs/config.php";
+require_once __DIR__ . '/../../../../config.php';
 function getLocationFromIP($ip): string
 {
     $apiUrl = "http://ip-api.com/json/$ip?fields=city,country";

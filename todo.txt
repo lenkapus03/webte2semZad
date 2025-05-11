@@ -1,0 +1,44 @@
+DOCKER NAVOD
+
+1. nainstalovat docker na serveri
+2. spustit docker
+
+3. vlozit projekt do priecinku (hocikde -> napriklad aj /home/xpriezvisko/nazov_docker_projektu) 
+4. command: docker-compose up -d
+
+5. vlozit nasledujuci blok kodu do /etc/nginx/sites-available/nodeXX.webte.fei.stuba.sk
+
+    location ^~ /myapp/ {
+
+        rewrite ^/myapp/(.*)$ /$1 break;
+
+        proxy_pass http://localhost:8080;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_redirect off;
+    }
+
+    location = /myapp {
+        return 301 $scheme://$host/myapp/;
+     }
+
+------------------------------------------------------------------------------------------------------------------
+
+Prikazy (spustenie, restart a buildovanie kontajnera)
+- docker-compose down --> zastavi sa kontajner
+- docker-compose down --volumes -->zastavi sa kontajner + vymazu volumes (db)
+- docker-compose build --> build images
+- docker-compose build --no-cache --> build images without cache
+- docker-compose up -d --> start kontainer in detach mode
+
+Na debug
+- docker-compose logs
+- docker-compose logs <service_name> -->logy pre jednu sluzbu
+
+- docker exec -it <container_id_or_name> /bin/bash --> vstup do kontajnera (moznost prezerat subory apod.)
+- docker ps
+- docker ps -a --> prezeranie spustenych kontajnerov

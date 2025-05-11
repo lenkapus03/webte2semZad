@@ -1,5 +1,4 @@
 <?php
-//require_once "/var/www/configs/config.php";
 require_once "utilities.php";
 
 function generateApiKey(): string {
