@@ -32,7 +32,7 @@ Prikazy (spustenie, restart a buildovanie kontajnera)
 - docker-compose down --> zastavi sa kontajner
 - docker-compose down --volumes -->zastavi sa kontajner + vymazu volumes (db)
 - docker-compose build --> build images
-- docker-compose build --no-cache --> build images without cache
+-docker-compose build --no-cache --> build images without cache
 - docker-compose up -d --> start kontainer in detach mode
 
 Na debug
