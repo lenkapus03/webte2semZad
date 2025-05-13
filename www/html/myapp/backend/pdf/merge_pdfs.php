@@ -167,64 +167,123 @@ try {
 
     $response['debug'][] = "Output path: $outputPath";
 
-    // Simple PDF merging approach
-    $success = false;
-    try {
-        // Create a temporary file for output
-        $outputHandle = fopen($outputPath, 'wb');
-        if (!$outputHandle) {
-            throw new Exception("Cannot create output file: $outputPath");
-        }
+    // Create a Python script that uses the installed pypdf
+    $pythonScriptPath = $uploadDir . 'merge_pdfs.py';
+    $pythonScript = <<<EOT
+#!/usr/bin/env python3
+# PDF Merger using pypdf
 
-        // Write PDF header
-        fwrite($outputHandle, "%PDF-1.4\n");
+import sys
+import os
 
-        // Process each file
-        foreach ($filePaths as $index => $filePath) {
-            $response['debug'][] = "Processing file $index: $filePath";
+# Import pypdf
+from pypdf import PdfWriter, PdfReader
 
-            // Check if file exists and is readable
-            if (!file_exists($filePath) || !is_readable($filePath)) {
-                throw new Exception("Cannot read file: $filePath");
-            }
+def merge_pdfs(input_paths, output_path):
+    # Check that all input files exist
+    for path in input_paths:
+        if not os.path.exists(path):
+            print(f"Error: Input file does not exist: {path}")
+            return False
+    
+    # Create PDF writer object
+    writer = PdfWriter()
+    
+    # Add all pages from each PDF
+    for path in input_paths:
+        try:
+            reader = PdfReader(path)
+            page_count = len(reader.pages)
+            print(f"Processing file: {path} with {page_count} pages")
+            for page_num in range(page_count):
+                writer.add_page(reader.pages[page_num])
+        except Exception as e:
+            print(f"Error reading PDF {path}: {str(e)}")
+            return False
+    
+    # Write the merged PDF to output file
+    try:
+        with open(output_path, 'wb') as output_file:
+            writer.write(output_file)
+        print(f"Successfully wrote merged PDF to {output_path}")
+        return True
+    except Exception as e:
+        print(f"Error writing output file: {str(e)}")
+        return False
 
-            // Get file content
-            $content = file_get_contents($filePath);
-            if ($content === false) {
-                throw new Exception("Failed to read content from: $filePath");
-            }
+if __name__ == "__main__":
+    # Get arguments from command line
+    if len(sys.argv) < 3:
+        print("Error: Not enough arguments. Need at least 2 input files and 1 output file.")
+        exit(1)
+    
+    input_files = sys.argv[1:-1]  # All arguments except the last one
+    output_file = sys.argv[-1]    # Last argument is the output file
+    
+    print(f"Input files: {input_files}")
+    print(f"Output file: {output_file}")
+    
+    if merge_pdfs(input_files, output_file):
+        print("PDF merge successful")
+        exit(0)
+    else:
+        print("PDF merge failed")
+        exit(1)
+EOT;
 
-            // Remove PDF header and EOF marker (except for first file)
-            $content = preg_replace('/^%PDF-[\d\.]+\s+/', '', $content);
-            $content = preg_replace('/%%EOF\s*$/', '', $content);
-
-            // Write to output file
-            $bytesWritten = fwrite($outputHandle, $content);
-            if ($bytesWritten === false) {
-                throw new Exception("Failed to write content to output file");
-            }
-
-            $response['debug'][] = "Wrote $bytesWritten bytes from file $index";
-        }
-
-        // Write EOF marker
-        fwrite($outputHandle, "\n%%EOF\n");
-        fclose($outputHandle);
-
-        // Verify output file
-        if (file_exists($outputPath) && filesize($outputPath) > 0) {
-            $success = true;
-            $response['debug'][] = "Merge successful. Output file size: " . filesize($outputPath) . " bytes";
-        } else {
-            throw new Exception("Output file is empty or does not exist");
-        }
-    } catch (Exception $e) {
-        $response['debug'][] = "PDF merge failed: " . $e->getMessage();
-        throw new Exception('Failed to merge PDF files: ' . $e->getMessage(), 500);
+    // Write the Python script to a file
+    if (file_put_contents($pythonScriptPath, $pythonScript) === false) {
+        throw new Exception("Failed to create Python script", 500);
     }
 
-    if (!$success) {
-        throw new Exception('Failed to merge PDF files', 500);
+    // Make the script executable
+    chmod($pythonScriptPath, 0755);
+
+    // Prepare the command to run the Python script with system Python
+    $command = "/usr/bin/python3 " . escapeshellarg($pythonScriptPath) . " ";
+
+    // Add each file path as a separate argument
+    foreach ($filePaths as $filePath) {
+        $command .= escapeshellarg($filePath) . " ";
+    }
+    $command .= escapeshellarg($outputPath) . " 2>&1";
+
+    $response['debug'][] = "Executing command: " . $command;
+
+    // Execute the command
+    $output = [];
+    $returnCode = 0;
+    exec($command, $output, $returnCode);
+
+    $response['debug'][] = "Command output: " . implode("\n", $output);
+    $response['debug'][] = "Return code: " . $returnCode;
+
+    // Check if the command was successful
+    if ($returnCode !== 0) {
+        throw new Exception("Python script failed: " . implode("\n", $output), 500);
+    }
+
+    // Verify all input files were actually used
+    $inputFilesUsed = false;
+    foreach ($output as $line) {
+        if (strpos($line, "Processing file:") !== false) {
+            $inputFilesUsed = true;
+            break;
+        }
+    }
+
+    if (!$inputFilesUsed) {
+        throw new Exception("Python script did not process any input files", 500);
+    }
+
+    // Verify the output file exists
+    if (!file_exists($outputPath)) {
+        throw new Exception("Output file was not created", 500);
+    }
+
+    // Verify the output file size
+    if (filesize($outputPath) === 0) {
+        throw new Exception("Output file is empty", 500);
     }
 
     // Store the session variables needed for download
@@ -240,11 +299,16 @@ try {
         'debug' => $response['debug']
     ];
 
-    // Clean up uploaded files
+    // Clean up uploaded files and temporary Python script
     foreach ($filePaths as $filePath) {
         if (file_exists($filePath)) {
             @unlink($filePath);
         }
+    }
+
+    // Delete the Python script
+    if (file_exists($pythonScriptPath)) {
+        @unlink($pythonScriptPath);
     }
 
 } catch (Exception $e) {

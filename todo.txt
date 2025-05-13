@@ -42,3 +42,19 @@ Na debug
 - docker exec -it <container_id_or_name> /bin/bash --> vstup do kontajnera (moznost prezerat subory apod.)
 - docker ps
 - docker ps -a --> prezeranie spustenych kontajnerov
+
+
+
+
+TODO: Toto si spustite je to na instalaciu pythonu:
+
+docker-compose down
+
+# Zmažeme image php
+docker rmi myapp_php
+
+# Vytvorime nový PHP image (asi staci aj bez toho --progress=plain php)
+docker-compose build --no-cache --progress=plain php
+
+# Spustite kontajnery znova
+docker-compose up -d
