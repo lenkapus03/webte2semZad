@@ -316,6 +316,14 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </div>
         </div>
 
+        <div class="tool-card">
+            <h3><i class="fas fa-trash-alt"></i> Remove PDF Pages</h3>
+            <p>Delete specific pages from PDF documents with an interactive page selection interface.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/remove_pages.html" class="btn"><i class="fas fa-minus-circle"></i> Use Tool</a>
+            </div>
+        </div>
+
         <!-- Placeholder for future tools -->
         <div class="tool-card" style="opacity: 0.6;">
             <h3><i class="fas fa-compress-alt"></i> Compress PDF</h3>
