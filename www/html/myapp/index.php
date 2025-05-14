@@ -318,6 +318,12 @@ $isAdmin = $_SESSION['role'] === 'admin';
     </div>
 </div>
 
+<div class="documentation-link">
+    <a href="/myapp/frontend/api-docs.html" class="btn btn-secondary">
+        <i class="fas fa-book"></i> OpenAPI Documentation
+    </a>
+</div>
+
 <div class="footer">
     <p>&copy; <?= date('Y') ?> PDF Processing App. All rights reserved.</p>
 </div>

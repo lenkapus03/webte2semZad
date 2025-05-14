@@ -1,0 +1,279 @@
+openapi: 3.0.0
+info:
+  title: PDF Processing API
+  description: |
+    API na spracovanie PDF súborov, ktorá umožňuje zlučovanie viacerých PDF súborov do jedného a rozdelenie PDF na samostatné stránky.
+  version: 1.0.0
+  contact:
+    name: Support
+    email: support@example.com
+
+servers:
+  - url: /myapp/backend
+    description: Základný endpoint pre backend API
+
+tags:
+  - name: pdf-operations
+    description: Operácie pre spracovanie PDF súborov
+
+paths:
+  /pdf/merge_pdfs.php:
+    post:
+      summary: Spájanie PDF súborov
+      description: |
+        Spája viacero PDF súborov do jedného dokumentu. Súbory sa nahrávajú ako multipart/form-data.
+      tags:
+        - pdf-operations
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Pole PDF súborov na zlúčenie (minimálne 2 súbory)
+      responses:
+        '200':
+          description: Úspešné spracovanie a spojenie PDF súborov
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indikátor úspešnosti operácie
+                  result_id:
+                    type: string
+                    description: Identifikátor výsledného PDF súboru pre stiahnutie
+                  message:
+                    type: string
+                    description: Správa o výsledku operácie
+                  file_count:
+                    type: integer
+                    description: Počet súborov, ktoré boli spojené
+                  debug:
+                    type: array
+                    items:
+                      type: string
+                    description: Ladiace informácie (len pre vývojárov)
+                example:
+                  success: true
+                  result_id: "60b8f92e4a781"
+                  message: "PDF files merged successfully"
+                  file_count: 3
+        '400':
+          description: Chyba požiadavky
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  error:
+                    type: string
+                    description: Popis chyby
+                example:
+                  success: false
+                  error: "At least two PDF files are required for merging"
+        '500':
+          description: Serverová chyba
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  error:
+                    type: string
+                    description: Popis chyby
+                example:
+                  success: false
+                  error: "Failed to merge PDF files"
+
+  /pdf/split_pdf.php:
+    post:
+      summary: Rozdelenie PDF súboru na stránky
+      description: |
+        Rozdelí PDF súbor na samostatné stránky a vytvorí ZIP archív s výslednými PDF súbormi.
+      tags:
+        - pdf-operations
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF súbor na rozdelenie
+      responses:
+        '200':
+          description: Úspešné spracovanie a rozdelenie PDF súboru
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indikátor úspešnosti operácie
+                  result_id:
+                    type: string
+                    description: Identifikátor výsledného ZIP súboru pre stiahnutie
+                  message:
+                    type: string
+                    description: Správa o výsledku operácie
+                  page_count:
+                    type: integer
+                    description: Počet stránok, na ktoré bol PDF súbor rozdelený
+                  debug:
+                    type: array
+                    items:
+                      type: string
+                    description: Ladiace informácie (len pre vývojárov)
+                example:
+                  success: true
+                  result_id: "60b8f92e4a781"
+                  message: "PDF file split successfully"
+                  page_count: 10
+        '400':
+          description: Chyba požiadavky
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  error:
+                    type: string
+                    description: Popis chyby
+                example:
+                  success: false
+                  error: "No file uploaded"
+        '500':
+          description: Serverová chyba
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  error:
+                    type: string
+                    description: Popis chyby
+                example:
+                  success: false
+                  error: "Python script failed"
+
+  /pdf/download_pdf.php:
+    get:
+      summary: Stiahnutie výsledného PDF
+      description: |
+        Stiahne výsledný PDF súbor po operácii zlučovania.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: Identifikátor PDF súboru získaný z operácie merge_pdfs
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PDF súbor na stiahnutie
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Chyba požiadavky
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Súbor nenájdený
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Serverová chyba
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /pdf/download_zip.php:
+    get:
+      summary: Stiahnutie ZIP archívu s rozdelenými stránkami
+      description: |
+        Stiahne ZIP archív obsahujúci rozdelené stránky po operácii split_pdf.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: Identifikátor ZIP súboru získaný z operácie split_pdf
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ZIP súbor na stiahnutie
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Chyba požiadavky
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Súbor nenájdený
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Serverová chyba
+          content:
+            text/html:
+              schema:
+                type: string
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        error:
+          type: string
+          description: Popis chyby
+      required:
+        - success
+        - error
