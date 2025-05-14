@@ -14,6 +14,7 @@ try {
     // Get the path from the session
     $filePath = $_SESSION['pdf_file'];
     $resultId = $_SESSION['pdf_id'];
+    $originalFilename = $_SESSION['pdf_original_filename'] ?? 'pdf';
 
     // Check if the request ID matches the stored ID
     $requestId = isset($_GET['id']) ? $_GET['id'] : '';
@@ -39,7 +40,7 @@ try {
 
     // Set headers for file download
     header('Content-Type: application/pdf');
-    header('Content-Disposition: attachment; filename="merged_document.pdf"');
+    header('Content-Disposition: attachment; filename="' . $originalFilename . '.pdf"');
     header('Content-Length: ' . $fileSize);
     header('Cache-Control: no-cache, must-revalidate');
     header('Expires: 0');

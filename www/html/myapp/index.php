@@ -332,6 +332,14 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </div>
         </div>
 
+        <div class="tool-card">
+            <h3><i class="fas fa-lock"></i> Encrypt PDF</h3>
+            <p>Secure your PDF documents with password protection.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/encrypt_pdf.html" class="btn"><i class="fas fa-key"></i> Use Tool</a>
+            </div>
+        </div>
+
         <!-- Placeholder for future tools -->
         <div class="tool-card" style="opacity: 0.6;">
             <h3><i class="fas fa-compress-alt"></i> Compress PDF</h3>

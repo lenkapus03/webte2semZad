@@ -1,7 +1,4 @@
 <?php
-// Backend script for reordering PDF pages
-// Filename: reorder_pages.php
-
 // Disable PHP error display in output but log them
 ini_set('display_errors', 1); // Set to 0 in production
 error_reporting(E_ALL);
@@ -13,7 +10,7 @@ ini_set('max_execution_time', 300); // 5 minutes
 ini_set('memory_limit', '256M');
 
 // Log basic information for debugging
-error_log("Reorder PDF Pages Script Called: " . __FILE__);
+error_log("Encrypt PDF Script Called: " . __FILE__);
 error_log("Current Directory: " . __DIR__);
 error_log("Document Root: " . $_SERVER['DOCUMENT_ROOT']);
 error_log("Request URI: " . $_SERVER['REQUEST_URI']);
@@ -59,11 +56,6 @@ try {
     if (!empty($_FILES)) {
         $response['debug'][] = "Files structure: " . json_encode($_FILES);
     }
-    if (!empty($_POST)) {
-        // Filter out sensitive data from the debug info
-        $debugPost = $_POST;
-        $response['debug'][] = "POST data: " . json_encode($debugPost);
-    }
 
     // Check for POST method
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -75,34 +67,38 @@ try {
         throw new Exception('No file uploaded', 400);
     }
 
-    // Check for page order
-    if (empty($_POST['page_order'])) {
-        throw new Exception('No page order specified', 400);
+    // Get password
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+
+    // Check if password is provided
+    if (empty($password)) {
+        throw new Exception('Password must be provided', 400);
     }
 
-    // Parse page order
-    $pageOrder = json_decode($_POST['page_order'], true);
-    if (!is_array($pageOrder)) {
-        throw new Exception("Invalid page order data provided", 400);
+    // Use system temp directory for both uploads and results
+    $uploadDir = sys_get_temp_dir() . '/pdf_uploads_' . session_id() . '/';
+    $resultDir = sys_get_temp_dir() . '/pdf_results_' . session_id() . '/';
+
+    // Create upload directory with error checking
+    if (!is_dir($uploadDir)) {
+        if (!@mkdir($uploadDir, 0755, true)) {
+            throw new Exception('Failed to create upload directory: ' . $uploadDir, 500);
+        }
     }
 
-    // Use system temp directory instead of the web directory for both uploads and results
-    // This avoids permission issues
-    $uploadDir = sys_get_temp_dir() . '/pdf_reorder_uploads_' . session_id() . '/';
-    $resultDir = sys_get_temp_dir() . '/pdf_reorder_results_' . session_id() . '/';
-
-    // Create directories with error checking
-    foreach ([$uploadDir, $resultDir] as $dir) {
-        if (!is_dir($dir)) {
-            if (!@mkdir($dir, 0755, true)) {
-                throw new Exception('Failed to create directory: ' . $dir, 500);
-            }
+    // Create results directory with error checking
+    if (!is_dir($resultDir)) {
+        if (!@mkdir($resultDir, 0755, true)) {
+            throw new Exception('Failed to create results directory: ' . $resultDir, 500);
         }
+    }
 
-        // Make sure directories are writable
-        if (!is_writable($dir)) {
-            throw new Exception("Directory is not writable: $dir", 500);
-        }
+    // Make sure directories are writable
+    if (!is_writable($uploadDir)) {
+        throw new Exception("Upload directory is not writable: $uploadDir", 500);
+    }
+    if (!is_writable($resultDir)) {
+        throw new Exception("Results directory is not writable: $resultDir", 500);
     }
 
     $response['debug'][] = "Upload directory: $uploadDir";
@@ -153,84 +149,71 @@ try {
     $outputPath = $resultDir . $resultId . '.pdf';
 
     $response['debug'][] = "Output path: $outputPath";
-    $response['debug'][] = "Reordering pages to: " . implode(", ", $pageOrder);
 
-    // Create Python script to reorder pages
-    $pythonScriptPath = $uploadDir . 'reorder_pages.py';
+    // Create a Python script that uses the installed pypdf
+    $pythonScriptPath = $uploadDir . 'encrypt_pdf.py';
     $pythonScript = <<<EOT
 #!/usr/bin/env python3
-# PDF Page Reorderer using pypdf
+# Simple PDF Encryptor using pypdf
 
 import sys
 import os
-import json
 from pypdf import PdfReader, PdfWriter
 
-def reorder_pdf_pages(input_path, output_path, page_order_json):
+def encrypt_pdf(input_path, output_path, password=""):
     # Check that input file exists
     if not os.path.exists(input_path):
         print(f"Error: Input file does not exist: {input_path}")
         return False
     
     try:
-        # Parse page order
-        page_order = json.loads(page_order_json)
-        
         # Open the PDF file
         reader = PdfReader(input_path)
         writer = PdfWriter()
-        page_count = len(reader.pages)
         
-        print(f"Processing PDF: {input_path} with {page_count} pages")
-        print(f"New page order: {', '.join(map(str, page_order))}")
+        # Copy all pages from input to output
+        for page in reader.pages:
+            writer.add_page(page)
         
-        # Validate page order
-        if len(page_order) != page_count:
-            print(f"Error: Page order length ({len(page_order)}) does not match PDF page count ({page_count})")
-            return False
-            
-        for page_num in page_order:
-            if page_num < 1 or page_num > page_count:
-                print(f"Error: Invalid page number {page_num} in page order. Must be between 1 and {page_count}")
-                return False
+        # Copy metadata from the original file
+        if reader.metadata:
+            writer.add_metadata(reader.metadata)
         
-        # Add pages in the new order
-        for i, page_num in enumerate(page_order):
-            # page_num is 1-based, but pypdf is 0-based
-            writer.add_page(reader.pages[page_num - 1])
-            print(f"Adding page {page_num} at position {i+1}")
+        # Encrypt the PDF with the password (use same password for user and owner)
+        writer.encrypt(password)
         
         # Write the output file
         with open(output_path, 'wb') as output_file:
             writer.write(output_file)
         
-        print(f"Output written to: {output_path}")
-        print(f"REORDERED:success")
+        print(f"Successfully wrote encrypted PDF to {output_path}")
         return True
     except Exception as e:
-        print(f"Error processing PDF: {str(e)}")
+        print(f"Error encrypting PDF: {str(e)}")
         return False
 
 if __name__ == "__main__":
     # Get arguments from command line
-    if len(sys.argv) != 4:
-        print("Error: Incorrect number of arguments.")
-        print("Usage: reorder_pages.py input_file output_path page_order_json")
+    if len(sys.argv) < 3:
+        print("Error: Not enough arguments.")
+        print("Usage: python3 encrypt_pdf.py input.pdf output.pdf [password]")
         exit(1)
     
     input_file = sys.argv[1]
-    output_path = sys.argv[2]
-    page_order_json = sys.argv[3]
+    output_file = sys.argv[2]
+    
+    # Get password
+    password = sys.argv[3] if len(sys.argv) > 3 else ""
     
     print(f"Input file: {input_file}")
-    print(f"Output path: {output_path}")
-    print(f"Page order JSON: {page_order_json}")
+    print(f"Output file: {output_file}")
+    print(f"Password: {'[SET]' if password else '[NONE]'}")
     
-    if reorder_pdf_pages(input_file, output_path, page_order_json):
-        print("PDF page reordering successful")
+    if encrypt_pdf(input_file, output_file, password):
+        print("PDF encryption successful")
         exit(0)
     else:
-        print("PDF page reordering failed")
+        print("PDF encryption failed")
         exit(1)
 EOT;
 
@@ -242,13 +225,12 @@ EOT;
     // Make the script executable
     chmod($pythonScriptPath, 0755);
 
-    // Prepare the command to run the Python script with system Python
-    $pageOrderJson = json_encode($pageOrder);
-    $command = "/usr/bin/python3 " .
-        escapeshellarg($pythonScriptPath) . " " .
-        escapeshellarg($filePath) . " " .
-        escapeshellarg($outputPath) . " " .
-        escapeshellarg($pageOrderJson) . " 2>&1";
+    // Prepare the command to run the Python script
+    $command = "/usr/bin/python3 " . escapeshellarg($pythonScriptPath) . " ";
+    $command .= escapeshellarg($filePath) . " ";
+    $command .= escapeshellarg($outputPath) . " ";
+    $command .= escapeshellarg($password) . " ";
+    $command .= escapeshellarg($safeOriginalFilename) . " 2>&1";
 
     $response['debug'][] = "Executing command: " . $command;
 
@@ -275,7 +257,7 @@ EOT;
         throw new Exception("Output file is empty", 500);
     }
 
-    // For universal download system
+    // Store the session variables needed for download
     $_SESSION['pdf_file'] = $outputPath;
     $_SESSION['pdf_id'] = $resultId;
     $_SESSION['pdf_original_filename'] = $safeOriginalFilename;
@@ -284,7 +266,7 @@ EOT;
     $response = [
         'success' => true,
         'result_id' => $resultId,
-        'message' => 'PDF pages successfully reordered',
+        'message' => 'PDF successfully protected with password',
         'debug' => $response['debug']
     ];
 
@@ -293,6 +275,7 @@ EOT;
         @unlink($filePath);
     }
 
+    // Delete the Python script
     if (file_exists($pythonScriptPath)) {
         @unlink($pythonScriptPath);
     }
@@ -307,7 +290,7 @@ EOT;
     $response['error'] = $e->getMessage();
     $response['debug'][] = "Error: " . $e->getMessage();
 
-    error_log('PDF Reorder Pages Error: ' . $e->getMessage());
+    error_log('PDF Encryption Error: ' . $e->getMessage());
 } catch (Throwable $t) {
     http_response_code(500);
 
@@ -316,7 +299,7 @@ EOT;
     $response['error'] = 'An unexpected error occurred';
     $response['debug'][] = "Throwable: " . $t->getMessage();
 
-    error_log('PDF Reorder Pages Critical Error: ' . $t->getMessage());
+    error_log('PDF Encryption Critical Error: ' . $t->getMessage());
 }
 
 // Send the JSON response

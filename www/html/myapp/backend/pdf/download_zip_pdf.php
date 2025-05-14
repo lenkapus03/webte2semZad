@@ -40,7 +40,7 @@ try {
 
     // Set headers for file download
     header('Content-Type: application/zip');
-    header('Content-Disposition: attachment; filename="' . $originalFilename . '_split.zip"');
+    header('Content-Disposition: attachment; filename="' . $originalFilename . '.zip"');
     header('Content-Length: ' . $fileSize);
     header('Cache-Control: no-cache, must-revalidate');
     header('Expires: 0');
