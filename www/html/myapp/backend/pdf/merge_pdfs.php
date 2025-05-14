@@ -287,8 +287,8 @@ EOT;
     }
 
     // Store the session variables needed for download
-    $_SESSION['pdf_merge_file'] = $outputPath;
-    $_SESSION['pdf_merge_id'] = $resultId;
+    $_SESSION['pdf_file'] = $outputPath;
+    $_SESSION['pdf_id'] = $resultId;
 
     // Set successful response
     $response = [

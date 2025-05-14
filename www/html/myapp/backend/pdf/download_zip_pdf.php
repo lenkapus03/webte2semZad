@@ -7,14 +7,14 @@ session_start();
 
 try {
     // Check if we have a PDF split result ID and path in the session
-    if (!isset($_SESSION['pdf_split_id']) || !isset($_SESSION['pdf_split_file'])) {
+    if (!isset($_SESSION['pdf_zip_id']) || !isset($_SESSION['pdf_zip_file'])) {
         throw new Exception('No split PDF file found in session. Please split a file first.');
     }
 
     // Get the path from the session
-    $filePath = $_SESSION['pdf_split_file'];
-    $resultId = $_SESSION['pdf_split_id'];
-    $originalFilename = $_SESSION['pdf_split_original_filename'] ?? 'pdf';
+    $filePath = $_SESSION['pdf_zip_file'];
+    $resultId = $_SESSION['pdf_zip_id'];
+    $originalFilename = $_SESSION['pdf_zip_original_filename'] ?? 'pdf';
 
     // Check if the request ID matches the stored ID
     $requestId = isset($_GET['id']) ? $_GET['id'] : '';

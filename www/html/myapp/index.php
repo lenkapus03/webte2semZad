@@ -307,6 +307,15 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </div>
         </div>
 
+
+        <div class="tool-card">
+            <h3><i class="fas fa-sync-alt"></i> Rotate PDF</h3>
+            <p>Rotate PDF pages in any direction with interactive preview and bulk rotation options.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/rotate_pdf.html" class="btn"><i class="fas fa-redo"></i> Use Tool</a>
+            </div>
+        </div>
+
         <!-- Placeholder for future tools -->
         <div class="tool-card" style="opacity: 0.6;">
             <h3><i class="fas fa-compress-alt"></i> Compress PDF</h3>

@@ -7,13 +7,13 @@ session_start();
 
 try {
     // Check if we have a PDF result ID and path in the session
-    if (!isset($_SESSION['pdf_merge_id']) || !isset($_SESSION['pdf_merge_file'])) {
+    if (!isset($_SESSION['pdf_id']) || !isset($_SESSION['pdf_file'])) {
         throw new Exception('No PDF file found in session. Please merge files first.');
     }
 
     // Get the path from the session
-    $filePath = $_SESSION['pdf_merge_file'];
-    $resultId = $_SESSION['pdf_merge_id'];
+    $filePath = $_SESSION['pdf_file'];
+    $resultId = $_SESSION['pdf_id'];
 
     // Check if the request ID matches the stored ID
     $requestId = isset($_GET['id']) ? $_GET['id'] : '';

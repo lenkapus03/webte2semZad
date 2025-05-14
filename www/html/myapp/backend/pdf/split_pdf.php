@@ -285,9 +285,9 @@ EOT;
     }
 
     // Store the session variables needed for download
-    $_SESSION['pdf_split_file'] = $zipPath;
-    $_SESSION['pdf_split_id'] = $resultId;
-    $_SESSION['pdf_split_original_filename'] = $safeOriginalFilename;
+    $_SESSION['pdf_zip_file'] = $zipPath;
+    $_SESSION['pdf_zip_id'] = $resultId;
+    $_SESSION['pdf_zip_original_filename'] = $safeOriginalFilename;
 
     // Set successful response
     $response = [
