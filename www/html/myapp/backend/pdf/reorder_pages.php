@@ -1,4 +1,7 @@
 <?php
+// Backend script for reordering PDF pages
+// Filename: reorder_pages.php
+
 // Disable PHP error display in output but log them
 ini_set('display_errors', 1); // Set to 0 in production
 error_reporting(E_ALL);
@@ -10,7 +13,7 @@ ini_set('max_execution_time', 300); // 5 minutes
 ini_set('memory_limit', '256M');
 
 // Log basic information for debugging
-error_log("Remove PDF Pages Script Called: " . __FILE__);
+error_log("Reorder PDF Pages Script Called: " . __FILE__);
 error_log("Current Directory: " . __DIR__);
 error_log("Document Root: " . $_SERVER['DOCUMENT_ROOT']);
 error_log("Request URI: " . $_SERVER['REQUEST_URI']);
@@ -25,8 +28,6 @@ $response = [
     'error' => null,
     'result_id' => null,
     'message' => null,
-    'remaining_pages' => 0,
-    'removed_pages' => 0,
     'debug' => []  // For debugging information
 ];
 
@@ -74,10 +75,21 @@ try {
         throw new Exception('No file uploaded', 400);
     }
 
+    // Check for page order
+    if (empty($_POST['page_order'])) {
+        throw new Exception('No page order specified', 400);
+    }
+
+    // Parse page order
+    $pageOrder = json_decode($_POST['page_order'], true);
+    if (!is_array($pageOrder)) {
+        throw new Exception("Invalid page order data provided", 400);
+    }
+
     // Use system temp directory instead of the web directory for both uploads and results
     // This avoids permission issues
-    $uploadDir = sys_get_temp_dir() . '/pdf_remove_uploads_' . session_id() . '/';
-    $resultDir = sys_get_temp_dir() . '/pdf_remove_results_' . session_id() . '/';
+    $uploadDir = sys_get_temp_dir() . '/pdf_reorder_uploads_' . session_id() . '/';
+    $resultDir = sys_get_temp_dir() . '/pdf_reorder_results_' . session_id() . '/';
 
     // Create directories with error checking
     foreach ([$uploadDir, $resultDir] as $dir) {
@@ -136,165 +148,64 @@ try {
 
     $response['debug'][] = "File processed: {$file['name']} -> $filePath";
 
-    // Check if this is a page count request
-    if (isset($_POST['action']) && $_POST['action'] === 'getPageCount') {
-        // Create a Python script that uses pypdf to get the page count
-        $pythonScriptPath = $uploadDir . 'get_page_count.py';
-        $pythonScript = <<<EOT
-#!/usr/bin/env python3
-# PDF Page Counter using pypdf
-
-import sys
-from pypdf import PdfReader
-
-if __name__ == "__main__":
-    # Get arguments from command line
-    if len(sys.argv) != 2:
-        print("Error: Incorrect number of arguments.")
-        print("Usage: get_page_count.py input_file")
-        exit(1)
-    
-    input_file = sys.argv[1]
-    
-    try:
-        # Open the PDF file
-        reader = PdfReader(input_file)
-        page_count = len(reader.pages)
-        print(f"PAGE_COUNT:{page_count}")
-        exit(0)
-    except Exception as e:
-        print(f"Error processing PDF: {str(e)}")
-        exit(1)
-EOT;
-
-        // Write the Python script to a file
-        if (file_put_contents($pythonScriptPath, $pythonScript) === false) {
-            throw new Exception("Failed to create Python script", 500);
-        }
-
-        // Make the script executable
-        chmod($pythonScriptPath, 0755);
-
-        // Prepare the command to run the Python script with system Python
-        $command = "/usr/bin/python3 " .
-            escapeshellarg($pythonScriptPath) . " " .
-            escapeshellarg($filePath) . " 2>&1";
-
-        $response['debug'][] = "Executing command: " . $command;
-
-        // Execute the command
-        $output = [];
-        $returnCode = 0;
-        exec($command, $output, $returnCode);
-
-        $response['debug'][] = "Command output: " . implode("\n", $output);
-        $response['debug'][] = "Return code: " . $returnCode;
-
-        // Check if the command was successful
-        if ($returnCode !== 0) {
-            throw new Exception("Python script failed: " . implode("\n", $output), 500);
-        }
-
-        // Extract page count from output
-        $pageCount = 0;
-        foreach ($output as $line) {
-            if (strpos($line, "PAGE_COUNT:") !== false) {
-                $pageCount = intval(str_replace("PAGE_COUNT:", "", $line));
-                break;
-            }
-        }
-
-        // Return the page count
-        $response = [
-            'success' => true,
-            'page_count' => $pageCount,
-            'message' => 'Successfully retrieved page count',
-            'debug' => $response['debug']
-        ];
-
-        // Clean up
-        @unlink($pythonScriptPath);
-
-        echo json_encode($response);
-        exit;
-    }
-
-    // Get pages to remove
-    if (!isset($_POST['pages_to_remove'])) {
-        throw new Exception("No pages to remove specified", 400);
-    }
-
-    $pagesToRemove = json_decode($_POST['pages_to_remove'], true);
-
-    if (!is_array($pagesToRemove)) {
-        throw new Exception("Invalid pages to remove data provided", 400);
-    }
-
-    // Sort pages to remove in ascending order
-    sort($pagesToRemove);
-
-    $response['debug'][] = "Pages to remove: " . implode(", ", $pagesToRemove);
-
     // Generate a unique ID for the result
     $resultId = uniqid();
     $outputPath = $resultDir . $resultId . '.pdf';
 
     $response['debug'][] = "Output path: $outputPath";
+    $response['debug'][] = "Reordering pages to: " . implode(", ", $pageOrder);
 
-    // Create Python script to remove pages
-    $pythonScriptPath = $uploadDir . 'remove_pages.py';
+    // Create Python script to reorder pages
+    $pythonScriptPath = $uploadDir . 'reorder_pages.py';
     $pythonScript = <<<EOT
 #!/usr/bin/env python3
-# PDF Page Remover using pypdf
+# PDF Page Reorderer using pypdf
 
 import sys
 import os
 import json
 from pypdf import PdfReader, PdfWriter
 
-def remove_pdf_pages(input_path, output_path, pages_to_remove_json):
+def reorder_pdf_pages(input_path, output_path, page_order_json):
     # Check that input file exists
     if not os.path.exists(input_path):
         print(f"Error: Input file does not exist: {input_path}")
         return False
     
     try:
-        # Parse pages to remove
-        pages_to_remove = json.loads(pages_to_remove_json)
-        
-        # Ensure pages_to_remove is sorted
-        pages_to_remove.sort()
+        # Parse page order
+        page_order = json.loads(page_order_json)
         
         # Open the PDF file
         reader = PdfReader(input_path)
         writer = PdfWriter()
         page_count = len(reader.pages)
         
-        if len(pages_to_remove) >= page_count:
-            print(f"Error: Cannot remove all pages. Pages to remove: {len(pages_to_remove)}, Total pages: {page_count}")
-            return False
-        
         print(f"Processing PDF: {input_path} with {page_count} pages")
-        print(f"Removing pages: {', '.join(map(str, pages_to_remove))}")
+        print(f"New page order: {', '.join(map(str, page_order))}")
         
-        # Add all pages except those to be removed
-        pages_kept = 0
-        for i in range(page_count):
-            page_num = i + 1  # 1-based page numbering
-            if page_num not in pages_to_remove:
-                writer.add_page(reader.pages[i])
-                pages_kept += 1
-                print(f"Keeping page {page_num}")
-            else:
-                print(f"Removing page {page_num}")
+        # Validate page order
+        if len(page_order) != page_count:
+            print(f"Error: Page order length ({len(page_order)}) does not match PDF page count ({page_count})")
+            return False
+            
+        for page_num in page_order:
+            if page_num < 1 or page_num > page_count:
+                print(f"Error: Invalid page number {page_num} in page order. Must be between 1 and {page_count}")
+                return False
+        
+        # Add pages in the new order
+        for i, page_num in enumerate(page_order):
+            # page_num is 1-based, but pypdf is 0-based
+            writer.add_page(reader.pages[page_num - 1])
+            print(f"Adding page {page_num} at position {i+1}")
         
         # Write the output file
         with open(output_path, 'wb') as output_file:
             writer.write(output_file)
         
         print(f"Output written to: {output_path}")
-        print(f"REMOVED_PAGES:{len(pages_to_remove)}")
-        print(f"REMAINING_PAGES:{pages_kept}")
+        print(f"REORDERED:success")
         return True
     except Exception as e:
         print(f"Error processing PDF: {str(e)}")
@@ -304,22 +215,22 @@ if __name__ == "__main__":
     # Get arguments from command line
     if len(sys.argv) != 4:
         print("Error: Incorrect number of arguments.")
-        print("Usage: remove_pages.py input_file output_path pages_to_remove_json")
+        print("Usage: reorder_pages.py input_file output_path page_order_json")
         exit(1)
     
     input_file = sys.argv[1]
     output_path = sys.argv[2]
-    pages_to_remove_json = sys.argv[3]
+    page_order_json = sys.argv[3]
     
     print(f"Input file: {input_file}")
     print(f"Output path: {output_path}")
-    print(f"Pages to remove JSON: {pages_to_remove_json}")
+    print(f"Page order JSON: {page_order_json}")
     
-    if remove_pdf_pages(input_file, output_path, pages_to_remove_json):
-        print("PDF page removal successful")
+    if reorder_pdf_pages(input_file, output_path, page_order_json):
+        print("PDF page reordering successful")
         exit(0)
     else:
-        print("PDF page removal failed")
+        print("PDF page reordering failed")
         exit(1)
 EOT;
 
@@ -332,12 +243,12 @@ EOT;
     chmod($pythonScriptPath, 0755);
 
     // Prepare the command to run the Python script with system Python
-    $pagesToRemoveJson = json_encode($pagesToRemove);
+    $pageOrderJson = json_encode($pageOrder);
     $command = "/usr/bin/python3 " .
         escapeshellarg($pythonScriptPath) . " " .
         escapeshellarg($filePath) . " " .
         escapeshellarg($outputPath) . " " .
-        escapeshellarg($pagesToRemoveJson) . " 2>&1";
+        escapeshellarg($pageOrderJson) . " 2>&1";
 
     $response['debug'][] = "Executing command: " . $command;
 
@@ -352,17 +263,6 @@ EOT;
     // Check if the command was successful
     if ($returnCode !== 0) {
         throw new Exception("Python script failed: " . implode("\n", $output), 500);
-    }
-
-    // Extract page removal info from output
-    $removedPages = 0;
-    $remainingPages = 0;
-    foreach ($output as $line) {
-        if (strpos($line, "REMOVED_PAGES:") !== false) {
-            $removedPages = intval(str_replace("REMOVED_PAGES:", "", $line));
-        } else if (strpos($line, "REMAINING_PAGES:") !== false) {
-            $remainingPages = intval(str_replace("REMAINING_PAGES:", "", $line));
-        }
     }
 
     // Verify the output file exists
@@ -384,17 +284,9 @@ EOT;
     $response = [
         'success' => true,
         'result_id' => $resultId,
-        'message' => 'PDF pages successfully removed',
-        'removed_pages' => $removedPages,
-        'remaining_pages' => $remainingPages,
+        'message' => 'PDF pages successfully reordered',
         'debug' => $response['debug']
     ];
-
-     //toto treba pridat aby sa zobrazovala akcia v user history
-    if (isset($_SESSION['username'])) {
-        require_once __DIR__ . '/../auth/utilities.php';
-        logUserAction($_SESSION['username'], 'remove_pages_pdf');
-    }   
 
     // Clean up uploaded file and temporary Python script
     if (file_exists($filePath)) {
@@ -415,7 +307,7 @@ EOT;
     $response['error'] = $e->getMessage();
     $response['debug'][] = "Error: " . $e->getMessage();
 
-    error_log('PDF Remove Pages Error: ' . $e->getMessage());
+    error_log('PDF Reorder Pages Error: ' . $e->getMessage());
 } catch (Throwable $t) {
     http_response_code(500);
 
@@ -424,7 +316,7 @@ EOT;
     $response['error'] = 'An unexpected error occurred';
     $response['debug'][] = "Throwable: " . $t->getMessage();
 
-    error_log('PDF Remove Pages Critical Error: ' . $t->getMessage());
+    error_log('PDF Reorder Pages Critical Error: ' . $t->getMessage());
 }
 
 // Send the JSON response

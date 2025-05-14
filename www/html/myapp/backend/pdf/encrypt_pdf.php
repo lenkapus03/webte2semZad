@@ -10,7 +10,7 @@ ini_set('max_execution_time', 300); // 5 minutes
 ini_set('memory_limit', '256M');
 
 // Log basic information for debugging
-error_log("Merge PDF Script Called: " . __FILE__);
+error_log("Encrypt PDF Script Called: " . __FILE__);
 error_log("Current Directory: " . __DIR__);
 error_log("Document Root: " . $_SERVER['DOCUMENT_ROOT']);
 error_log("Request URI: " . $_SERVER['REQUEST_URI']);
@@ -62,13 +62,20 @@ try {
         throw new Exception('Method not allowed', 405);
     }
 
-    // Check for uploaded files
-    if (empty($_FILES['files'])) {
-        throw new Exception('No files uploaded', 400);
+    // Check for uploaded file
+    if (empty($_FILES['file'])) {
+        throw new Exception('No file uploaded', 400);
     }
 
-    // Use system temp directory instead of the web directory for both uploads and results
-    // This avoids permission issues
+    // Get password
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+
+    // Check if password is provided
+    if (empty($password)) {
+        throw new Exception('Password must be provided', 400);
+    }
+
+    // Use system temp directory for both uploads and results
     $uploadDir = sys_get_temp_dir() . '/pdf_uploads_' . session_id() . '/';
     $resultDir = sys_get_temp_dir() . '/pdf_results_' . session_id() . '/';
 
@@ -97,71 +104,45 @@ try {
     $response['debug'][] = "Upload directory: $uploadDir";
     $response['debug'][] = "Results directory: $resultDir";
 
-    $filePaths = [];
-    $uploadedFiles = [];
+    // Process uploaded file
+    $file = $_FILES['file'];
 
-    // Process uploaded files
-    if (is_array($_FILES['files']['name'])) {
-        $fileCount = count($_FILES['files']['name']);
+    // Check for upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $errorMessages = [
+            UPLOAD_ERR_INI_SIZE => 'File exceeds the upload_max_filesize directive',
+            UPLOAD_ERR_FORM_SIZE => 'File exceeds the MAX_FILE_SIZE directive in the form',
+            UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+            UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+            UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+            UPLOAD_ERR_EXTENSION => 'File upload stopped by extension'
+        ];
 
-        $response['debug'][] = "Number of files: $fileCount";
+        $errorMessage = isset($errorMessages[$file['error']])
+            ? $errorMessages[$file['error']]
+            : 'Unknown upload error';
 
-        if ($fileCount < 2) {
-            throw new Exception('At least two PDF files are required for merging', 400);
-        }
-
-        for ($i = 0; $i < $fileCount; $i++) {
-            $file = [
-                'name' => $_FILES['files']['name'][$i],
-                'type' => $_FILES['files']['type'][$i],
-                'tmp_name' => $_FILES['files']['tmp_name'][$i],
-                'error' => $_FILES['files']['error'][$i],
-                'size' => $_FILES['files']['size'][$i],
-            ];
-
-            // Check for upload errors
-            if ($file['error'] !== UPLOAD_ERR_OK) {
-                $errorMessages = [
-                    UPLOAD_ERR_INI_SIZE => 'File exceeds the upload_max_filesize directive',
-                    UPLOAD_ERR_FORM_SIZE => 'File exceeds the MAX_FILE_SIZE directive in the form',
-                    UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
-                    UPLOAD_ERR_NO_FILE => 'No file was uploaded',
-                    UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
-                    UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
-                    UPLOAD_ERR_EXTENSION => 'File upload stopped by extension'
-                ];
-
-                $errorMessage = isset($errorMessages[$file['error']])
-                    ? $errorMessages[$file['error']]
-                    : 'Unknown upload error';
-
-                throw new Exception("Error uploading {$file['name']}: $errorMessage", 400);
-            }
-
-            // Check if the file is a PDF
-            if (!isPDF($file)) {
-                throw new Exception("File is not a PDF: {$file['name']}", 400);
-            }
-
-            // Generate a secure filename
-            $originalFilename = pathinfo($file['name'], PATHINFO_FILENAME);
-            $safeOriginalFilename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalFilename);
-            $filename = md5(uniqid() . $file['name']) . '.pdf';
-            $filePath = $uploadDir . $filename;
-
-            // Move the file with error checking
-            if (!move_uploaded_file($file['tmp_name'], $filePath)) {
-                throw new Exception("Failed to save uploaded file: {$file['name']}", 500);
-            }
-
-            $filePaths[] = $filePath;
-            $uploadedFiles[] = $file['name'];
-
-            $response['debug'][] = "File " . ($i + 1) . " processed: {$file['name']} -> $filePath";
-        }
-    } else {
-        throw new Exception('Invalid file upload format', 400);
+        throw new Exception("Error uploading {$file['name']}: $errorMessage", 400);
     }
+
+    // Check if the file is a PDF
+    if (!isPDF($file)) {
+        throw new Exception("File is not a PDF: {$file['name']}", 400);
+    }
+
+    // Generate a secure filename
+    $originalFilename = pathinfo($file['name'], PATHINFO_FILENAME);
+    $safeOriginalFilename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalFilename);
+    $filename = md5(uniqid() . $file['name']) . '.pdf';
+    $filePath = $uploadDir . $filename;
+
+    // Move the file with error checking
+    if (!move_uploaded_file($file['tmp_name'], $filePath)) {
+        throw new Exception("Failed to save uploaded file: {$file['name']}", 500);
+    }
+
+    $response['debug'][] = "File processed: {$file['name']} -> $filePath";
 
     // Generate a unique ID for the result
     $resultId = uniqid();
@@ -170,66 +151,69 @@ try {
     $response['debug'][] = "Output path: $outputPath";
 
     // Create a Python script that uses the installed pypdf
-    $pythonScriptPath = $uploadDir . 'merge_pdfs.py';
+    $pythonScriptPath = $uploadDir . 'encrypt_pdf.py';
     $pythonScript = <<<EOT
 #!/usr/bin/env python3
-# PDF Merger using pypdf
+# Simple PDF Encryptor using pypdf
 
 import sys
 import os
+from pypdf import PdfReader, PdfWriter
 
-# Import pypdf
-from pypdf import PdfWriter, PdfReader
-
-def merge_pdfs(input_paths, output_path):
-    # Check that all input files exist
-    for path in input_paths:
-        if not os.path.exists(path):
-            print(f"Error: Input file does not exist: {path}")
-            return False
+def encrypt_pdf(input_path, output_path, password=""):
+    # Check that input file exists
+    if not os.path.exists(input_path):
+        print(f"Error: Input file does not exist: {input_path}")
+        return False
     
-    # Create PDF writer object
-    writer = PdfWriter()
-    
-    # Add all pages from each PDF
-    for path in input_paths:
-        try:
-            reader = PdfReader(path)
-            page_count = len(reader.pages)
-            print(f"Processing file: {path} with {page_count} pages")
-            for page_num in range(page_count):
-                writer.add_page(reader.pages[page_num])
-        except Exception as e:
-            print(f"Error reading PDF {path}: {str(e)}")
-            return False
-    
-    # Write the merged PDF to output file
     try:
+        # Open the PDF file
+        reader = PdfReader(input_path)
+        writer = PdfWriter()
+        
+        # Copy all pages from input to output
+        for page in reader.pages:
+            writer.add_page(page)
+        
+        # Copy metadata from the original file
+        if reader.metadata:
+            writer.add_metadata(reader.metadata)
+        
+        # Encrypt the PDF with the password (use same password for user and owner)
+        writer.encrypt(password)
+        
+        # Write the output file
         with open(output_path, 'wb') as output_file:
             writer.write(output_file)
-        print(f"Successfully wrote merged PDF to {output_path}")
+        
+        print(f"Successfully wrote encrypted PDF to {output_path}")
         return True
     except Exception as e:
-        print(f"Error writing output file: {str(e)}")
+        print(f"Error encrypting PDF: {str(e)}")
         return False
 
 if __name__ == "__main__":
     # Get arguments from command line
     if len(sys.argv) < 3:
-        print("Error: Not enough arguments. Need at least 2 input files and 1 output file.")
+        print("Error: Not enough arguments.")
+        print("Usage: python3 encrypt_pdf.py input.pdf output.pdf [password]")
         exit(1)
     
-    input_files = sys.argv[1:-1]  # All arguments except the last one
-    output_file = sys.argv[-1]    # Last argument is the output file
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
     
-    print(f"Input files: {input_files}")
+    # Get password
+    password = sys.argv[3] if len(sys.argv) > 3 else ""
+    
+    print(f"Input file: {input_file}")
     print(f"Output file: {output_file}")
+    print(f"Password: {'[SET]' if password else '[NONE]'}")
     
-    if merge_pdfs(input_files, output_file):
-        print("PDF merge successful")
+    if encrypt_pdf(input_file, output_file, password):
+        print("PDF encryption successful")
         exit(0)
     else:
-        print("PDF merge failed")
+        print("PDF encryption failed")
         exit(1)
 EOT;
 
@@ -241,14 +225,12 @@ EOT;
     // Make the script executable
     chmod($pythonScriptPath, 0755);
 
-    // Prepare the command to run the Python script with system Python
+    // Prepare the command to run the Python script
     $command = "/usr/bin/python3 " . escapeshellarg($pythonScriptPath) . " ";
-
-    // Add each file path as a separate argument
-    foreach ($filePaths as $filePath) {
-        $command .= escapeshellarg($filePath) . " ";
-    }
-    $command .= escapeshellarg($outputPath) . " 2>&1";
+    $command .= escapeshellarg($filePath) . " ";
+    $command .= escapeshellarg($outputPath) . " ";
+    $command .= escapeshellarg($password) . " ";
+    $command .= escapeshellarg($safeOriginalFilename) . " 2>&1";
 
     $response['debug'][] = "Executing command: " . $command;
 
@@ -263,19 +245,6 @@ EOT;
     // Check if the command was successful
     if ($returnCode !== 0) {
         throw new Exception("Python script failed: " . implode("\n", $output), 500);
-    }
-
-    // Verify all input files were actually used
-    $inputFilesUsed = false;
-    foreach ($output as $line) {
-        if (strpos($line, "Processing file:") !== false) {
-            $inputFilesUsed = true;
-            break;
-        }
-    }
-
-    if (!$inputFilesUsed) {
-        throw new Exception("Python script did not process any input files", 500);
     }
 
     // Verify the output file exists
@@ -297,22 +266,13 @@ EOT;
     $response = [
         'success' => true,
         'result_id' => $resultId,
-        'message' => 'PDF files merged successfully',
-        'file_count' => count($filePaths),
+        'message' => 'PDF successfully protected with password',
         'debug' => $response['debug']
     ];
-    
-     //toto treba pridat aby sa zobrazovala akcia v user history
-    if (isset($_SESSION['username'])) {
-        require_once __DIR__ . '/../auth/utilities.php';
-        logUserAction($_SESSION['username'], 'merge_pdf');
-    }   
-    
-    // Clean up uploaded files and temporary Python script
-    foreach ($filePaths as $filePath) {
-        if (file_exists($filePath)) {
-            @unlink($filePath);
-        }
+
+    // Clean up uploaded file and temporary Python script
+    if (file_exists($filePath)) {
+        @unlink($filePath);
     }
 
     // Delete the Python script
@@ -330,7 +290,7 @@ EOT;
     $response['error'] = $e->getMessage();
     $response['debug'][] = "Error: " . $e->getMessage();
 
-    error_log('PDF Merge Error: ' . $e->getMessage());
+    error_log('PDF Encryption Error: ' . $e->getMessage());
 } catch (Throwable $t) {
     http_response_code(500);
 
@@ -339,7 +299,7 @@ EOT;
     $response['error'] = 'An unexpected error occurred';
     $response['debug'][] = "Throwable: " . $t->getMessage();
 
-    error_log('PDF Merge Critical Error: ' . $t->getMessage());
+    error_log('PDF Encryption Critical Error: ' . $t->getMessage());
 }
 
 // Send the JSON response

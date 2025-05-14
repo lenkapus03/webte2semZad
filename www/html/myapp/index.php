@@ -325,6 +325,22 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </div>
         </div>
 
+        <div class="tool-card">
+            <h3><i class="fas fa-sort-amount-down"></i> Reorder PDF Pages</h3>
+            <p>Interactively rearrange pages in your PDF documents with drag-and-drop functionality.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/reorder_pages.html" class="btn"><i class="fas fa-exchange-alt"></i> Use Tool</a>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3><i class="fas fa-lock"></i> Encrypt PDF</h3>
+            <p>Secure your PDF documents with password protection.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/encrypt_pdf.html" class="btn"><i class="fas fa-key"></i> Use Tool</a>
+            </div>
+        </div>
+
         <!-- Placeholder for future tools -->
         <div class="tool-card" style="opacity: 0.6;">
             <h3><i class="fas fa-compress-alt"></i> Compress PDF</h3>
