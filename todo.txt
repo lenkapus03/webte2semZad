@@ -9,7 +9,7 @@ DOCKER NAVOD
 5. vlozit nasledujuci blok kodu do /etc/nginx/sites-available/nodeXX.webte.fei.stuba.sk
 
     location ^~ /myapp/ {
-
+        client_max_body_size 100M;
         rewrite ^/myapp/(.*)$ /$1 break;
 
         proxy_pass http://localhost:8080;
