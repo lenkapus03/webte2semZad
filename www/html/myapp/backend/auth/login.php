@@ -8,6 +8,8 @@ require_once "api_key.php";
 
 $response = [];
 
+
+
 try {
     $pdo = getPDO();
 

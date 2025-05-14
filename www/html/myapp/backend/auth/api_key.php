@@ -1,5 +1,6 @@
 <?php
 require_once "utilities.php";
+require_once __DIR__ . '/../../config.php';
 
 function generateApiKey(): string {
     return bin2hex(random_bytes(32));

@@ -1,46 +1,180 @@
 <?php
 session_start();
 
-if (isset($_SESSION['username'])) {
-    header("Location: /myapp/index.php");
-    exit;
+require_once $_SERVER['DOCUMENT_ROOT'] . '/config.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/backend/auth/api_key.php';
+
+$error = '';
+$success = '';
+$apiKey = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+    $role = $_POST['role'] ?? '';
+
+    try {
+        $validation = validateUsernamePassword($username, $password);
+        if (!$validation['valid']) {
+            throw new Exception(implode("<br>", $validation['errors']));
+        }
+
+        $roleCheck = validateRole($role);
+        if (!$roleCheck['valid']) {
+            throw new Exception(implode("<br>", $roleCheck['errors']));
+        }
+
+        $pdo = getPDO();
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        if ($stmt->fetch()) {
+            throw new Exception('Username already exists.');
+        }
+
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $apiKey = generateApiKey();
+
+        $stmt = $pdo->prepare("INSERT INTO users (username, password, role, api_key) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$username, $hashedPassword, $role, $apiKey]);
+
+        $_SESSION = [
+            'username' => $username,
+            'role' => $role,
+            'api_key' => $apiKey
+        ];
+
+        logUserAction($username, 'register');
+
+        header("Location: /myapp/index.php");
+        exit;
+
+    } catch (Exception $e) {
+        $error = $e->getMessage();
+    }
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Register – PDF App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4285F4;
+            --danger-color: #EA4335;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f5f5f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .register-card {
+            background: white;
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #3367d6;
+        }
+
+        .error {
+            color: var(--danger-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .link a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .link a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-<h2>Register</h2>
-<form id="registerForm">
-    <label for="username">Username:</label><br>
-    <input type="text" name="username" id="username" placeholder="Username" required><br><br>
+    <div class="register-card">
+        <h2><i class="fas fa-user-plus"></i> Register</h2>
 
-    <label for="password">Password:</label><br>
-    <input type="password" name="password" id="password" placeholder="Password" required><br><br>
+        <?php if (!empty($error)): ?>
+            <div class="error"><?= $error ?></div>
+        <?php endif; ?>
 
-    <label for="role">Role:</label><br>
-    <select name="role" id="role" required>
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-    </select><br><br>
+        <form method="post" action="">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" name="username" id="username" required />
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" required />
+            </div>
+            <div class="form-group">
+                <label for="role">Role:</label>
+                <select name="role" id="role" required>
+                    <option value="user" selected>User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">Register</button>
+        </form>
 
-    <button type="submit">Register</button>
-</form>
-
-<p>Already have an account? <a href="login.php">Login here</a></p>
-
-<div id="errorMessages" style="color: red; display: none;">
-    <ul id="errorList"></ul>
-</div>
-
-<div id="apiKeyDisplay" style="display:none;">
-    <p>Your API Key: <strong><span id="apiKey"></span></strong></p>
-</div>
-
-<script defer src="register.js"></script>
+        <div class="link">
+            Already have an account? <a href="login.php">Login</a>
+        </div>
+    </div>
 </body>
 </html>

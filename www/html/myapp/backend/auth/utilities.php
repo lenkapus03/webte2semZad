@@ -1,24 +1,33 @@
 <?php
-require_once __DIR__ . '/../../../../config.php';
+require_once __DIR__ . '/../../config.php';
 function getLocationFromIP($ip): string
 {
+    if (
+        in_array($ip, ['127.0.0.1', '::1']) ||
+        str_starts_with($ip, '10.') ||
+        str_starts_with($ip, '192.') ||
+        str_starts_with($ip, '172.')
+    ) {
+        error_log("Lokálna IP ($ip) – nastavené ako localhost");
+        return 'localhost';
+    }
+
     $apiUrl = "http://ip-api.com/json/$ip?fields=city,country";
     $response = @file_get_contents($apiUrl);
 
     if ($response === false) {
-        error_log("Failed to fetch IP location for $ip");
+        error_log("IP API request failed for $ip");
         return 'Unknown';
     }
 
     $data = json_decode($response, true);
-
-    if (is_array($data) && isset($data['city']) && isset($data['country'])) {
+    if (!empty($data['city']) && !empty($data['country'])) {
         return $data['city'] . ', ' . $data['country'];
-    } else {
-        return 'Unknown';
     }
-}
 
+    error_log("IP API response neobsahuje city/country pre IP $ip: " . json_encode($data));
+    return 'Unknown';
+}
 
 function validateUsername(string $username): array {
     $errors = [];
@@ -91,9 +100,19 @@ function validateRole(string $role): array {
 function logUserAction(string $username, string $action_type, string $source = 'frontend'): bool
 {
     $pdo = getPDO();
-    try{
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $location = getLocationFromIP($ip);
+
+    try {
+        // Skús použiť verejnú IP z hlavičky, ak existuje
+        $ip = $_SERVER['HTTP_X_FORWARDED_FOR']
+            ?? $_SERVER['REMOTE_ADDR']
+            ?? 'unknown';
+
+        // Ak je v tvare "IP1, IP2" (zozadu proxy), zober prvú
+        if (strpos($ip, ',') !== false) {
+            $ip = explode(',', $ip)[0];
+        }
+
+        $location = getLocationFromIP(trim($ip));
         $currentTime = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
@@ -107,3 +126,4 @@ function logUserAction(string $username, string $action_type, string $source = '
         return false;
     }
 }
+

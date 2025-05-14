@@ -11,6 +11,7 @@ services:
     volumes:
       - ./www/html:/var/www/html
       - ./config.php:/var/www/config.php
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
 
   php:
     build:
@@ -23,7 +24,7 @@ services:
       - mysql
     volumes:
       - ./www/html:/var/www/html
-      - ./config.php:/var/www/config.php
+      - ./config.php:/var/www/html/myapp/config.php
     environment:
       DB_HOST: mysql
       DB_NAME: pdf_db

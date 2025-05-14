@@ -298,7 +298,13 @@ EOT;
         'file_count' => count($filePaths),
         'debug' => $response['debug']
     ];
-
+    
+     //toto treba pridat aby sa zobrazovala akcia v user history
+    if (isset($_SESSION['username'])) {
+        require_once __DIR__ . '/../auth/utilities.php';
+        logUserAction($_SESSION['username'], 'merge_pdf');
+    }   
+    
     // Clean up uploaded files and temporary Python script
     foreach ($filePaths as $filePath) {
         if (file_exists($filePath)) {

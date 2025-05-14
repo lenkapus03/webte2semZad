@@ -1,14 +1,10 @@
 <?php
-header('Content-Type: application/json');
 session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/config.php';
 
-require_once '../../../config.php';
-
-
-$response = [];
+header('Content-Type: application/json');
 
 try {
-
     $pdo = getPDO();
 
     if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin') {
@@ -19,21 +15,26 @@ try {
         throw new Exception('Database connection not available', 500);
     }
 
+    // Export do CSV
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['export'])) {
+        exportToCSV($pdo);
+        exit;
+    }
+
+    $response = [];
+
     switch ($_SERVER['REQUEST_METHOD']) {
         case 'GET':
             $stmt = $pdo->query("SELECT * FROM users_history ORDER BY time DESC");
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
             if ($data === false) {
                 throw new Exception('Failed to fetch user history', 500);
             }
-
             $response = $data;
             break;
 
         case 'DELETE':
             $input = json_decode(file_get_contents('php://input'), true);
-
             if (empty($input['username']) || empty($input['time'])) {
                 throw new Exception('Missing username or time', 400);
             }
@@ -52,18 +53,39 @@ try {
             throw new Exception('Method Not Allowed', 405);
     }
 
+    echo json_encode($response);
+
 } catch (PDOException $e) {
     http_response_code(500);
-    $response = ['error' => 'Database error'];
+    echo json_encode(['error' => 'Database error']);
     error_log('PDO Exception: ' . $e->getMessage());
 } catch (Exception $e) {
     $code = $e->getCode();
     http_response_code($code >= 400 ? $code : 400);
-    $response = ['error' => $e->getMessage()];
+    echo json_encode(['error' => $e->getMessage()]);
 
     if ($code >= 500) {
         error_log('Server Exception: ' . $e->getMessage());
     }
 }
 
-echo json_encode($response);
+// Funkcia na export do CSV
+function exportToCSV($pdo) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=user_history.csv');
+
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['Username', 'Time', 'Action', 'Source', 'Location']);
+
+    $stmt = $pdo->query("SELECT users_username, time, action_type, source, location FROM users_history ORDER BY time DESC");
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        fputcsv($output, [
+            $row['users_username'],
+            $row['time'],
+            $row['action_type'],
+            $row['source'],
+            $row['location']
+        ]);
+    }
+    fclose($output);
+}

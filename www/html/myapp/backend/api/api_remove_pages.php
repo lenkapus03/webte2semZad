@@ -55,6 +55,11 @@ try {
 
     $username = $user['username'];
 
+    //toto treba pridat aby sa zobrazovala akcia v user history
+    if (isset($username)) {
+        logUserAction($username, 'remove_pdf', 'api');
+    }
+
     // Handle different request methods
     switch ($_SERVER['REQUEST_METHOD']) {
         case 'GET':

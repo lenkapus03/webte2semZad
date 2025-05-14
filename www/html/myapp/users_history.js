@@ -93,4 +93,9 @@ document.addEventListener("DOMContentLoaded", function () {
     function showError(message) {
         tbody.innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${message}</td></tr>`;
     }
+    
+    document.getElementById("exportCsvBtn").addEventListener("click", () => {
+        window.location.href = "/myapp/backend/users_history.php?export=1";
+    });
+    
 });

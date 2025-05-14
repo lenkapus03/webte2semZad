@@ -2,9 +2,11 @@
 header('Content-Type: application/json');
 
 // Include required files
-require_once __DIR__ . '/../../../config.php';
+require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../auth/utilities.php';
 require_once __DIR__ . '/../auth/api_key.php';
+
+
 
 // Define allowed methods for the endpoint
 $allowed_methods = ['POST', 'GET', 'OPTIONS'];
@@ -54,6 +56,11 @@ try {
     }
 
     $username = $user['username'];
+
+    //toto treba pridat aby sa zobrazovala akcia v user history
+    if (isset($username)) {
+        logUserAction($username, 'merge_pdf', 'api');
+    }
 
     // Handle different request methods
     switch ($_SERVER['REQUEST_METHOD']) {
