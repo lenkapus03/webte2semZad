@@ -12,80 +12,53 @@ $isAdmin = $_SESSION['role'] === 'admin';
 <head>
     <meta charset="UTF-8">
     <title>PDF_app</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #4285F4;
+            --secondary-color: #34A853;
+            --danger-color: #EA4335;
+            --warning-color: #FBBC05;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-        }
-        h1 {
+            background-color: #f5f5f7;
             color: #333;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
         }
-        .language-switcher {
-            text-align: right;
-            margin-bottom: 20px;
-        }
-        .dropzone {
-            border: 2px dashed #ccc;
-            border-radius: 5px;
-            padding: 30px;
-            text-align: center;
-            margin: 20px 0;
-            background-color: #f9f9f9;
-            transition: all 0.3s ease;
-        }
-        .dropzone.active {
-            border-color: #4CAF50;
-            background-color: #e8f5e9;
-        }
-        #fileList {
-            list-style: none;
-            padding: 0;
-            margin: 20px 0;
-        }
-        #fileList li {
+
+        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            border: 1px solid #ddd;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            background-color: #f5f5f5;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
         }
-        #fileList .file-name {
-            flex-grow: 1;
-            margin-right: 10px;
+
+        .header h1 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 2.2em;
         }
-        .file-item {
+
+        .user-controls {
             display: flex;
             align-items: center;
+            gap: 15px;
         }
-        .file-icon {
-            margin-right: 10px;
-        }
-        .remove-btn {
-            background-color: #f44336;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .drag-handle {
-            cursor: move;
-            padding: 0 10px;
-            color: #aaa;
-        }
-        #fileInput {
-            display: none;
-        }
+
         .btn {
-            background-color: #4CAF50;
+            background-color: var(--primary-color);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -95,89 +68,258 @@ $isAdmin = $_SESSION['role'] === 'admin';
             font-size: 16px;
             margin: 4px 2px;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            box-shadow: var(--box-shadow);
         }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
         .btn:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
+
         .btn-secondary {
-            background-color: #2196F3;
+            background-color: var(--secondary-color);
         }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: #333;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .tools-section {
+            margin: 40px 0;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .tool-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .tool-card h3 {
+            color: var(--dark-color);
+            margin-top: 0;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+        }
+
+        .tool-card h3 i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+
+        .tool-card p {
+            color: #666;
+            margin-bottom: 20px;
+            min-height: 50px;
+        }
+
+        .tool-card .btn-div {
+            text-align: center;
+        }
+        .tool-card .btn {
+            width: 80%;
+            margin: auto;
+            box-sizing: border-box;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .admin-section {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin: 30px 0;
+            box-shadow: var(--box-shadow);
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .admin-section h3 {
+            margin-top: 0;
+            color: var(--dark-color);
+        }
+
+        .api-section {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 10px 30px;
+            margin: 10px 0;
+            box-shadow: var(--box-shadow);
+        }
+
+        #apiKeyDisplay {
+            background-color: var(--light-color);
+            padding: 0;
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
         .message {
             padding: 15px;
             margin: 20px 0;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
+            animation: fadeIn 0.5s;
         }
+
         .success {
-            background-color: #dff0d8;
-            color: #3c763d;
-            border: 1px solid #d6e9c6;
+            background-color: rgba(52, 168, 83, 0.1);
+            color: var(--secondary-color);
+            border: 1px solid rgba(52, 168, 83, 0.2);
         }
+
         .error {
-            background-color: #f2dede;
-            color: #a94442;
-            border: 1px solid #ebccd1;
+            background-color: rgba(234, 67, 53, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(234, 67, 53, 0.2);
         }
+
         .info {
-            background-color: #d9edf7;
-            color: #31708f;
-            border: 1px solid #bce8f1;
+            background-color: rgba(66, 133, 244, 0.1);
+            color: var(--primary-color);
+            border: 1px solid rgba(66, 133, 244, 0.2);
         }
+
         .hidden {
             display: none;
         }
-        .navigation {
-            margin-bottom: 20px;
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
         }
-        .navigation a {
-            margin-right: 15px;
-            color: #2196F3;
-            text-decoration: none;
+
+        .documentation-link {
+            display: inline-block;
+            margin-top: 30px;
+            text-align: center;
+            width: 100%;
         }
-        .navigation a:hover {
-            text-decoration: underline;
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-        @media (max-width: 600px) {
-            .dropzone {
-                padding: 15px;
-            }
-            #fileList li {
+
+        @media (max-width: 768px) {
+            .header {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            .file-buttons {
-                margin-top: 10px;
-                align-self: flex-end;
+
+            .user-controls {
+                margin-top: 15px;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-<h1>Welcome, <?= htmlspecialchars($_SESSION['username']) ?>!</h1>
-<a href="/myapp/backend/auth/logout.php">Logout</a>
-<button id="regenApiKey">Generate New API Key</button>
-<p id="message"></p>
-<div id="apiKeyDisplay"></div>
+<div class="header">
+    <h1>PDF Processing App</h1>
+    <div class="user-controls">
+        <span>Welcome, <strong><?= htmlspecialchars($_SESSION['username']) ?></strong></span>
+        <a href="/myapp/backend/auth/logout.php" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<div class="api-section">
+    <h2><i class="fas fa-key"></i> API Access</h2>
+    <p>Generate and manage your API key to access PDF tools programmatically.</p>
+    <button id="regenApiKey" class="btn btn-secondary"><i class="fas fa-sync"></i> Generate New API Key</button>
+    <p id="message" class="hidden"></p>
+    <div id="apiKeyDisplay"></div>
+</div>
 <?php if ($isAdmin): ?>
-    <hr>
-    <h3>Admin Panel</h3>
-    <a href="/myapp/users_history.html">View User History</a>
+    <div class="admin-section">
+        <h3><i class="fas fa-user-shield"></i> Admin Panel</h3>
+        <p>Access administrative tools and user history.</p>
+        <a href="/myapp/users_history.html" class="btn btn-warning"><i class="fas fa-history"></i> View User History</a>
+    </div>
 <?php endif; ?>
 
 
-<h2>Available PDF Tools</h2>
+<div class="tools-section">
+    <h2><i class="fas fa-tools"></i> PDF Tools</h2>
+    <div class="tools-grid">
+        <div class="tool-card">
+            <h3><i class="fas fa-object-group"></i> Merge PDF</h3>
+            <p>Combine multiple PDF files into a single document with options for reordering pages.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/merge_pdfs.html" class="btn"><i class="fas fa-link"></i> Use Tool</a>
+            </div>
+        </div>
 
-<div class="features">
+        <div class="tool-card">
+            <h3><i class="fas fa-file-alt"></i> Split PDF</h3>
+            <p>Split PDF into individual pages and remove empty or unwanted pages.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/split_pdf.html" class="btn"><i class="fas fa-cut"></i> Use Tool</a>
+            </div>
+        </div>
 
-
-    <div class="feature-box">
-        <h3>Advanced PDF Merger</h3>
-        <p>Merge PDFs with additional options like reordering pages.</p>
-        <a href="/myapp/frontend/merge_pdfs.html" class="btn">Use Tool</a>
+        <!-- Placeholder for future tools -->
+        <div class="tool-card" style="opacity: 0.6;">
+            <h3><i class="fas fa-compress-alt"></i> Compress PDF</h3>
+            <p>Reduce file size while maintaining quality (Coming soon).</p>
+            <div class="btn-div">
+                <button class="btn" disabled><i class="fas fa-clock"></i> Coming Soon</button>
+            </div>
+        </div>
     </div>
+</div>
 
-    <!-- Add more feature boxes for future tools -->
+<div class="footer">
+    <p>&copy; <?= date('Y') ?> PDF Processing App. All rights reserved.</p>
 </div>
 
 <script src="index.js" defer></script>
