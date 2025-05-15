@@ -385,6 +385,9 @@ $isAdmin = $_SESSION['role'] === 'admin';
 </div>
 
 <div class="documentation-link">
+    <a href="manual.html" class="btn btn-secondary">
+        <i class="fas fa-book"></i> Manuál
+    </a>
     <a href="/myapp/frontend/api-docs.html" class="btn btn-secondary">
         <i class="fas fa-book"></i> OpenAPI Documentation
     </a>

@@ -32,7 +32,7 @@ Prikazy (spustenie, restart a buildovanie kontajnera)
 - docker-compose down --> zastavi sa kontajner
 - docker-compose down --volumes -->zastavi sa kontajner + vymazu volumes (db)
 - docker-compose build --> build images
--docker-compose build --no-cache --> build images without cache
+- docker-compose build --no-cache --> build images without cache
 - docker-compose up -d --> start kontainer in detach mode
 
 Na debug
@@ -57,4 +57,18 @@ docker rmi myapp_php
 docker-compose build --no-cache --progress=plain php
 
 # Spustite kontajnery znova
+docker-compose up -d
+
+TODO: k dynamickemu navodu :
+Inštalácia DomPDF cez Composer (na hoste)
+cd www/html
+composer require dompdf/dompdf
+Tým sa vytvorí:
+vendor/
+composer.json
+composer.lock
+
+//s tym som kus bojovala ale asi preto ze som to buildovala v inom adresari omylom, čiže kedy nahodou tak vymazat cache a tak
+cd webte2semZad
+docker-compose build
 docker-compose up -d

@@ -1,0 +1,28 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h1>Návod na použitie</h1>
+<p>V tejto aplikácii môžete upravovať PDF dokumenty rôznymi spôsobmi:</p>
+<ul>
+    <li>Spájanie PDF</li>
+    <li>Odstraňovanie strán</li>
+    <li>Pridávanie vodoznakov</li>
+    <li>Šifrovanie a dešifrovanie</li>
+    <!-- ďalšie funkcie -->
+</ul>
+<h2>Použitie cez frontend</h2>
+<p>Každá funkcia má vlastné rozhranie, kde si môžete vybrať PDF a nastaviť možnosti.</p>
+
+<h2>Použitie cez API</h2>
+<p>Ak ste prihlásený a máte API kľúč, môžete volat funkcie cez HTTP požiadavky.</p>
+
+<?php if (!isset($isPdf)): ?>
+<a href="domPdfScript.php" class="btn btn-primary">Stiahnuť návod ako PDF</a>
+<?php endif; ?>
+</body>
+</html>
