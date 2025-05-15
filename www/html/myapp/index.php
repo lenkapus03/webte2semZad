@@ -88,6 +88,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
 
         .btn-secondary {
             background-color: var(--secondary-color);
+            margin: 0;
         }
 
         .btn-danger {
@@ -111,7 +112,16 @@ $isAdmin = $_SESSION['role'] === 'admin';
         }
 
         .tools-section {
-            margin: 40px 0;
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin: 30px 0;
+            box-shadow: var(--box-shadow);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .tools-section h2 {
+            margin-top: 0;
         }
 
         .tools-grid {
@@ -184,9 +194,15 @@ $isAdmin = $_SESSION['role'] === 'admin';
         .api-section {
             background-color: white;
             border-radius: var(--border-radius);
-            padding: 10px 30px;
+            padding: 20px;
             margin: 10px 0;
             box-shadow: var(--box-shadow);
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .api-section h3 {
+            margin-top: 0;
+            color: var(--dark-color);
         }
 
         #apiKeyDisplay {
@@ -274,7 +290,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
 </div>
 
 <div class="api-section">
-    <h2><i class="fas fa-key"></i> API Access</h2>
+    <h3><i class="fas fa-key"></i> API Access</h3>
     <p>Generate and manage your API key to access PDF tools programmatically.</p>
     <button id="regenApiKey" class="btn btn-secondary"><i class="fas fa-sync"></i> Generate New API Key</button>
     <p id="message" class="hidden"></p>
