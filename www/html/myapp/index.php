@@ -373,6 +373,14 @@ $isAdmin = $_SESSION['role'] === 'admin';
                 <a href="/myapp/frontend/extract_pages.html" class="btn"><i class="fas fa-file-export"></i> Use Tool</a>
             </div>
         </div>
+        <div class="tool-card">
+            <h3><i class="fas fa-unlock"></i> Unlock PDF</h3>
+            <p>Remove password protection from your PDF documents securely.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/decrypt_pdf.html" class="btn"><i class="fas fa-unlock-alt"></i> Use Tool</a>
+            </div>
+        </div>
+
     </div>
 </div>
 

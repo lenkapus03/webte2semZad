@@ -2,9 +2,11 @@
 header('Content-Type: application/json');
 
 // Include required files
-
 require_once __DIR__ . '/../auth/utilities.php';
 require_once __DIR__ . '/../auth/api_key.php';
+
+
+//$apiKey = getUserApiKey($_SESSION['username']);
 
 // Define allowed methods for the endpoint
 $allowed_methods = ['POST', 'GET', 'OPTIONS'];
@@ -31,29 +33,29 @@ try {
         throw new Exception('Method not allowed', 405);
     }
 
-    // Check for API key
-    if (!isset($_SERVER['HTTP_X_API_KEY'])) {
-        throw new Exception('API key is required', 401);
+    // ✅ Kontrola API kľúča v hlavičke
+    $apiKey = $_SERVER['HTTP_X_API_KEY'] ?? null;
+    if (!$apiKey || !validateApiKey($apiKey)) {
+        throw new Exception('Invalid or missing API key', 401);
     }
 
-    $apiKey = $_SERVER['HTTP_X_API_KEY'];
-
-    // Validate API key
-    if (!validateApiKey($apiKey)) {
-        throw new Exception('Invalid API key', 401);
-    }
-
-    // Get username from API key
+    // ✅ Získaj username podľa API kľúča
     $pdo = getPDO();
     $stmt = $pdo->prepare("SELECT username FROM users WHERE api_key = ?");
     $stmt->execute([$apiKey]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
-        throw new Exception('Invalid API key', 401);
+        throw new Exception('Invalid API key (user not found)', 401);
     }
 
     $username = $user['username'];
+
+
+    // Validate API key
+    if (!validateApiKey($apiKey)) {
+        throw new Exception('Invalid API key', 401);
+    }
 
     // Handle different request methods
     switch ($_SERVER['REQUEST_METHOD']) {
@@ -61,43 +63,37 @@ try {
             // Get information about the API endpoint
             $response = [
                 'success' => true,
-                'endpoint' => 'PDF Extract Pages API',
-                'description' => 'API for extracting specific pages from a PDF file',
+                'endpoint' => 'PDF Decryption API',
+                'description' => 'API for removing password from encrypted PDF files',
                 'methods' => [
                     'GET' => 'Get information about this API endpoint',
-                    'POST' => 'Upload a PDF file to extract specific pages'
+                    'POST' => 'Upload a password-protected PDF file and provide password to decrypt it'
                 ],
                 'post_parameters' => [
-                    'file' => 'Single PDF file to process',
-                    'pages_to_keep' => 'JSON array of page numbers to keep (1-based)'
+                    'file' => 'Encrypted PDF file',
+                    'password' => 'Password used to unlock the PDF file (required)'
                 ],
                 'post_response' => [
                     'success' => 'Boolean indicating success',
-                    'result_id' => 'ID of the modified PDF file for download',
-                    'message' => 'Result message',
-                    'kept_pages' => 'Number of pages kept',
-                    'removed_pages' => 'Number of pages removed'
+                    'result_id' => 'ID of the decrypted PDF file for download',
+                    'message' => 'Result message'
                 ],
                 'download_url' => '/myapp/backend/api/api_download_pdf.php?id={result_id}'
             ];
             break;
 
         case 'POST':
-            // Forward the request to the remove_pages.php script
-            $_SERVER['HTTP_X_API_KEY'] = $apiKey; // Ensure API key is passed
+            // Forward the request to the encrypt_pdf.php script
+            // We'll do this by including the script and letting it handle the response
+            //$_SERVER['HTTP_X_API_KEY'] = $apiKey; // Ensure API key is passed
 
             // Get the file from the current request
             if (empty($_FILES['file'])) {
                 throw new Exception('No file uploaded', 400);
             }
 
-            // Check for pages_to_remove parameter
-            if (empty($_POST['pages_to_keep'])) {
-                throw new Exception('No pages to keep specified', 400);
-            }
-
-            // Include the remove_pages.php script
-            include __DIR__ . '/../pdf/extract_pages.php';
+            // Include the encrypt_pdf.php script
+            include __DIR__ . '/../pdf/decrypt_pdf.php';
             // The script will handle the response, so we exit here
             exit;
 
@@ -117,7 +113,7 @@ try {
         'success' => false,
         'error' => 'An unexpected error occurred'
     ];
-    error_log('PDF Extract Pages API Error: ' . $t->getMessage());
+    error_log('PDF API Error: ' . $t->getMessage());
 }
 
 echo json_encode($response);
