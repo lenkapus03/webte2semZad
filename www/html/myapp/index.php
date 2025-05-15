@@ -349,6 +349,14 @@ $isAdmin = $_SESSION['role'] === 'admin';
                 <button class="btn" disabled><i class="fas fa-clock"></i> Coming Soon</button>
             </div>
         </div>
+
+        <div class="tool-card">
+            <h3><i class="fas fa-file-export"></i> Extract PDF Pages</h3>
+            <p>Extract and keep only selected pages from a PDF document.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/extract_pages.html" class="btn"><i class="fas fa-file-export"></i> Use Tool</a>
+            </div>
+        </div>
     </div>
 </div>
 
