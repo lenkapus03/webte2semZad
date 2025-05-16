@@ -2,8 +2,6 @@
 header('Content-Type: application/json');
 session_start();
 
-//require_once "/var/www/configs/config.php";
-//require_once "utilities.php";
 require_once "api_key.php";
 
 $response = [];

@@ -55,9 +55,9 @@ try {
 
     $username = $user['username'];
 
-    //toto treba pridat aby sa zobrazovala akcia v user history
+    // Log user action
     if (isset($username)) {
-        logUserAction($username, 'split_pdf', 'api');
+        logUserAction($username, 'watermark_pdf', 'api');
     }
 
     // Handle different request methods
@@ -66,27 +66,32 @@ try {
             // Get information about the API endpoint
             $response = [
                 'success' => true,
-                'endpoint' => 'PDF Split API',
-                'description' => 'API for splitting a PDF file into individual pages',
+                'endpoint' => 'PDF Watermark API',
+                'description' => 'API for adding watermarks to PDF files',
                 'methods' => [
                     'GET' => 'Get information about this API endpoint',
-                    'POST' => 'Upload a PDF file to be split'
+                    'POST' => 'Upload a PDF file to add watermark'
                 ],
                 'post_parameters' => [
-                    'file' => 'Single PDF file to split'
+                    'file' => 'Single PDF file to watermark',
+                    'watermark_text' => 'Text to use as watermark (required)',
+                    'position' => 'Position of watermark (center, top-left, top-right, bottom-left, bottom-right)',
+                    'opacity' => 'Opacity of watermark (0-1)',
+                    'color' => 'Color of watermark (hex format, e.g. #000000)',
+                    'font_size' => 'Font size of watermark',
+                    'rotation' => 'Rotation angle in degrees (0-360)'
                 ],
                 'post_response' => [
                     'success' => 'Boolean indicating success',
-                    'result_id' => 'ID of the split PDF file for download (as ZIP)',
-                    'message' => 'Result message',
-                    'page_count' => 'Number of pages in the original PDF'
+                    'result_id' => 'ID of the watermarked PDF file for download',
+                    'message' => 'Result message'
                 ],
-                'download_url' => '/myapp/backend/api/api_zip_download_pdf.php?id={result_id}'
+                'download_url' => '/myapp/backend/api/api_download_pdf.php?id={result_id}'
             ];
             break;
 
         case 'POST':
-            // Forward the request to the split_pdf.php script
+            // Forward the request to the watermark_pdf.php script
             $_SERVER['HTTP_X_API_KEY'] = $apiKey; // Ensure API key is passed
 
             // Get the file from the current request
@@ -94,8 +99,13 @@ try {
                 throw new Exception('No file uploaded', 400);
             }
 
-            // Include the split_pdf.php script
-            include __DIR__ . '/../pdf/split_pdf.php';
+            // Check for watermark text in POST data
+            if (empty($_POST['watermark_text'])) {
+                throw new Exception('Watermark text is required', 400);
+            }
+
+            // Include the watermark_pdf.php script
+            include __DIR__ . '/../pdf/watermark_pdf.php';
             // The script will handle the response, so we exit here
             exit;
 
@@ -115,7 +125,7 @@ try {
         'success' => false,
         'error' => 'An unexpected error occurred'
     ];
-    error_log('PDF Split API Error: ' . $t->getMessage());
+    error_log('PDF Watermark API Error: ' . $t->getMessage());
 }
 
 echo json_encode($response);

@@ -1,8 +1,8 @@
 <?php
 session_start();
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/backend/auth/api_key.php';
+require_once __DIR__ . '/../../../config.php';;
+require_once __DIR__ . '/../backend/auth/api_key.php';;
 
 $error = '';
 

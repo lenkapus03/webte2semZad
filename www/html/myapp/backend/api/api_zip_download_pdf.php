@@ -4,7 +4,7 @@ ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
 // Include required files
-require_once __DIR__ . '/../../../config.php';
+require_once __DIR__ . '/../../../../config.php';
 require_once __DIR__ . '/../auth/utilities.php';
 require_once __DIR__ . '/../auth/api_key.php';
 

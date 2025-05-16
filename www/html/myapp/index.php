@@ -381,6 +381,14 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </div>
         </div>
 
+        <div class="tool-card">
+            <h3><i class="fas fa-stamp"></i> Watermark PDF</h3>
+            <p>Add text or image watermarks to your PDF documents with customizable positioning.</p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/watermark_pdf.html" class="btn"><i class="fas fa-water"></i> Use Tool</a>
+            </div>
+        </div>
+
     </div>
 </div>
 

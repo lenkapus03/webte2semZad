@@ -2,8 +2,7 @@
 header('Content-Type: application/json');
 session_start();
 
-//require "/var/www/configs/config.php";
-//require_once "utilities.php";
+
 require_once "api_key.php";
 
 $response = ['success' => false, 'error' => "test", 'api_key' => null, 'user' => null];
