@@ -14,7 +14,7 @@ $t = $lang[$langCode] ?? $lang['sk'];
 $isAdmin = $_SESSION['role'] === 'admin';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sk">
 <head>
     <meta charset="UTF-8">
     <title>PDF_app</title>
@@ -315,6 +315,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
     </div>
 </div>
 <?php endif; ?>
+
 <div class="header">
     <h1><?= $t['title'] ?></h1>
 
@@ -369,6 +370,11 @@ $isAdmin = $_SESSION['role'] === 'admin';
         <div class="tool-card">
             <h3><i class="fas fa-unlock"></i> <?= $t['unlock'] ?></h3>
             <p><?= $t['unlock_desc'] ?></p>
+        </div>
+        <div class="tool-card">
+            <h3><i class="fas fa-stamp"></i> <?= $t['watermark'] ?></h3>
+            <p><?= $t['watermark_desc'] ?></p>
+
         </div>
     </div>
 </div>

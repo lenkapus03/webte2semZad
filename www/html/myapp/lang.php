@@ -1,6 +1,7 @@
 <?php
 $lang = [
     'en' => [
+        'titleApp' => 'PDF Processing App',
         'title' => 'PDF Processing App Manual',
         'api_title' => 'API Access',
         'api_desc' => 'Generate and manage your API key to access PDF tools programmatically.',
@@ -31,8 +32,18 @@ $lang = [
         'back_dashboard' => 'Back to Dashboard',
         'admin_panel' => 'Admin Panel',
         'admin_panel_desc' => 'Access administrative tools and user history.',
+        'watermark' => 'Watermark PDF',
+        'watermark_desc' => 'Add text or image watermarks to your PDF documents with customizable positioning.',
+        'use_tool' => 'Use Tool',
+        'logout' => 'Logout',
+        'generateApiKey' => 'Generate New API Key.',
+        'viewuserhistory' => 'View User History',
+        'manual' => 'Manual',
+        'OpenAPI' => 'OpenAPI Documentation',
+        'footer' => ' PDF Processing App. All rights reserved.',
     ],
     'sk' => [
+        'titleApp' => 'Aplikácia na spracovanie PDF',
         'title' => 'Aplikácia na spracovanie PDF Manuál',
         'api_title' => 'Prístup k API',
         'api_desc' => 'Generujte a spravujte svoj API kľúč na prístup k PDF nástrojom programovo.',
@@ -63,5 +74,16 @@ $lang = [
         'back_dashboard' => 'Späť na prehľad',
         'admin_panel' => 'Administrátorský panel',
         'admin_panel_desc' => 'Prístup k administrátorským nástrojom a histórii používateľov.',
+        'watermark' => 'Vodoznak PDF',
+        'watermark_desc' => 'Pridajte textový alebo obrázkový vodoznak do PDF s možnosťou nastavenia pozície.',
+        'use_tool' => 'Použiť nástroj',
+        'logout' => 'Odhlásiť sa',
+        'generateApiKey' => 'Generuj nový API klúč',
+        'viewuserhistory' => 'Vidieť užívateľskú historiu',
+        'manual' => 'Manuál',
+        'OpenAPI' => 'OpenAPI Dokumentácia',
+        'footer' => ' Aplikácia na spracovanie PDF. Všetky práva vyhradené.',
+
+
     ]
 ];
