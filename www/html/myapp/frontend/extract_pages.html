@@ -304,7 +304,7 @@
 </head>
 <body>
 <div class="navigation">
-  <a href="/myapp/index.php">← Back to Dashboard</a>
+  <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -376,7 +376,9 @@
         'of': 'of',
         'pagesSelected': 'pages selected for extraction out of',
         'totalPages': 'total pages',
-        'noSelection': 'No pages selected for extraction.'
+        'noSelection': 'No pages selected for extraction.',
+        'back': '← Back to Dashboard'
+
       },
       'sk': {
         'title': 'Extrahovanie PDF stránok',
@@ -398,7 +400,8 @@
         'of': 'z',
         'pagesSelected': 'stránok vybraných na extrakciu z',
         'totalPages': 'všetkých stránok',
-        'noSelection': 'Nie sú vybrané žiadne stránky na extrakciu.'
+        'noSelection': 'Nie sú vybrané žiadne stránky na extrakciu.',
+        'back': '← Späť na prehľad'
       }
     };
 
@@ -429,6 +432,7 @@
     const summaryBox = document.getElementById('summaryBox');
     const selectedCount = document.getElementById('selectedCount');
     const totalCount = document.getElementById('totalCount');
+    const back = document.getElementById('back');
 
     // PDF viewer variables
     let pdfDoc = null;
@@ -460,6 +464,7 @@
       deselectAllBtn.textContent = translations[lang].deselectAllBtn;
       applyBtn.textContent = translations[lang].applyBtn;
       downloadLink.textContent = translations[lang].downloadLink;
+      back.textContent = translations[lang].back;
 
       // Update page indicator
       updatePageIndicator();

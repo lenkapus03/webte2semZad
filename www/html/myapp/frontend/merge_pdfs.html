@@ -147,7 +147,7 @@
 </head>
 <body>
 <div class="navigation">
-    <a href="/myapp/index.php">← Back to Dashboard</a>
+    <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -188,7 +188,8 @@
                 'errorNoFiles': 'Please select at least 2 PDF files to merge.',
                 'errorUpload': 'Error uploading files: ',
                 'errorMerge': 'Error merging PDF files: ',
-                'remove': 'Remove'
+                'remove': 'Remove',
+                'back': '← Back to Dashboard'
             },
             'sk': {
                 'title': 'Spájanie PDF súborov',
@@ -201,7 +202,8 @@
                 'errorNoFiles': 'Vyberte aspoň 2 PDF súbory na spojenie.',
                 'errorUpload': 'Chyba pri nahrávaní súborov: ',
                 'errorMerge': 'Chyba pri spájaní PDF súborov: ',
-                'remove': 'Odstrániť'
+                'remove': 'Odstrániť',
+                'back': '← Späť na prehľad'
             }
         };
 
@@ -221,6 +223,7 @@
         const dropText = document.getElementById('dropText');
         const langEn = document.getElementById('lang-en');
         const langSk = document.getElementById('lang-sk');
+        const back = document.getElementById('back');
 
         // Files array to store selected files
         let selectedFiles = [];
@@ -239,6 +242,7 @@
         // Function to set the language
         function setLanguage(lang) {
             currentLang = lang;
+            back.textContent = translations[lang].back;
             title.textContent = translations[lang].title;
             dropText.textContent = translations[lang].dropText;
             selectFilesBtn.textContent = translations[lang].selectFiles;

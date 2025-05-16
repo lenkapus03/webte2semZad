@@ -179,7 +179,7 @@
 </head>
 <body>
 <div class="navigation">
-  <a href="/myapp/index.php">← Back to Dashboard</a>
+  <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -247,7 +247,9 @@
         'optionsTitle': 'Set Password',
         'passwordLabel': 'PDF Password:',
         'passwordInfo': 'This password is required to unlock the PDF before removing it',
-        'fileSelected': 'Selected file:'
+        'fileSelected': 'Selected file:',
+        'back': '← Back to Dashboard'
+
       },
       'sk': {
         'title': 'Odstrániť heslo z PDF',
@@ -265,7 +267,8 @@
         'optionsTitle': 'Zadajte heslo',
         'passwordLabel': 'Heslo PDF:',
         'passwordInfo': 'Toto heslo je potrebné na odomknutie PDF pred jeho spracovaním',
-        'fileSelected': 'Vybraný súbor:'
+        'fileSelected': 'Vybraný súbor:',
+        'back': '← Späť na prehľad'
       }
     };
 
@@ -292,6 +295,7 @@
     const togglePassword = document.getElementById('togglePassword');
     const eyeIcon = document.getElementById('eyeIcon');
     const eyeIconCrossed = document.getElementById('eyeIconCrossed');
+    const back = document.getElementById('back');
 
     // File variable to store the selected file
     let selectedFile = null;
@@ -331,6 +335,7 @@
       downloadLink.textContent = translations[lang].downloadLink;
       passwordLabel.textContent = translations[lang].passwordLabel;
       passwordInfo.textContent = translations[lang].passwordInfo;
+      back.textContent = translations[lang].back;
 
       // Update any dynamic content that might exist
       updateFileInfo();

@@ -239,7 +239,7 @@
 </head>
 <body>
 <div class="navigation">
-    <a href="/myapp/index.php">← Back to Dashboard</a>
+    <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -303,7 +303,8 @@
                 'of': 'of',
                 'reorderInfo': 'Drag and drop pages to reorder them. The original page number is shown in yellow.',
                 'originalPage': 'Original:',
-                'noChange': 'The page order has not changed. Make some changes first.'
+                'noChange': 'The page order has not changed. Make some changes first.',
+                'back': '← Back to Dashboard'
             },
             'sk': {
                 'title': 'Preusporiadanie PDF stránok',
@@ -322,7 +323,8 @@
                 'of': 'z',
                 'reorderInfo': 'Presuňte stránky pretiahnutím myšou. Pôvodné číslo strany je zobrazené žltou.',
                 'originalPage': 'Pôvodná:',
-                'noChange': 'Poradie strán sa nezmenilo. Najprv vykonajte nejaké zmeny.'
+                'noChange': 'Poradie strán sa nezmenilo. Najprv vykonajte nejaké zmeny.',
+                'back': '← Späť na prehľad'
             }
         };
 
@@ -347,6 +349,7 @@
         const langSk = document.getElementById('lang-sk');
         const summaryBox = document.getElementById('summaryBox');
         const reorderInfo = document.getElementById('reorderInfo');
+        const back = document.getElementById('back');
 
         // PDF viewer variables
         let pdfDoc = null;
@@ -380,6 +383,7 @@
             applyBtn.textContent = translations[lang].applyBtn;
             downloadLink.textContent = translations[lang].downloadLink;
             reorderInfo.textContent = translations[lang].reorderInfo;
+            back.textContent = translations[lang].back;
 
             // Update remove buttons
             document.querySelectorAll('.remove-btn').forEach(btn => {

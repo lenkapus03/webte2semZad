@@ -176,7 +176,7 @@
 </head>
 <body>
 <div class="navigation">
-    <a href="/myapp/index.php">← Back to Dashboard</a>
+    <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -257,7 +257,8 @@
                 'opacity': 'Opacity',
                 'color': 'Color',
                 'fontSize': 'Font Size',
-                'rotation': 'Rotation Angle'
+                'rotation': 'Rotation Angle',
+                'back': '← Back to Dashboard'
             },
             'sk': {
                 'title': 'Pridať vodoznak do PDF',
@@ -277,7 +278,8 @@
                 'opacity': 'Priehľadnosť',
                 'color': 'Farba',
                 'fontSize': 'Veľkosť písma',
-                'rotation': 'Uhol otočenia'
+                'rotation': 'Uhol otočenia',
+                'back': '← Späť na prehľad'
             }
         };
 
@@ -307,6 +309,7 @@
         const colorPreview = document.getElementById('colorPreview');
         const watermarkRotation = document.getElementById('watermarkRotation');
         const rotationValue = document.getElementById('rotationValue');
+        const back = document.getElementById('back');
 
         // Selected file
         let selectedFile = null;
@@ -344,6 +347,7 @@
             selectFileBtn.textContent = translations[lang].selectFile;
             watermarkBtn.textContent = translations[lang].watermarkBtn;
             downloadLink.textContent = translations[lang].downloadLink;
+            back.textContent = translations[lang].back;
 
             // Update watermark settings labels
             document.querySelector('.watermark-options h3').textContent = translations[lang].watermarkSettings;
