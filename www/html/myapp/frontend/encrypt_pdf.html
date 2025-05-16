@@ -423,7 +423,7 @@
         // Encrypt PDF button click event
         encryptPdfBtn.addEventListener('click', encryptPdf);
 
-        function encryptPdf() {
+        async function encryptPdf() {
             if (!selectedFile) {
                 showMessage('error', translations[currentLang].errorNoFile);
                 return;
@@ -449,50 +449,75 @@
             // Add password to FormData
             formData.append('password', password);
 
-            // Send request to the server
-            fetch('/myapp/backend/pdf/encrypt_pdf.php', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            console.error('Server error response:', text);
-                            throw new Error(`Server error: ${response.status}`);
-                        });
-                    }
-
-                    return response.text().then(text => {
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            console.error('Failed to parse JSON response:', text);
-                            throw new Error('Server returned invalid JSON response');
-                        }
-                    });
-                })
-                .then(data => {
-                    if (data.success && data.result_id) {
-                        showMessage('success', translations[currentLang].success);
-
-                        // Set download link
-                        downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                        resultContainer.classList.remove('hidden');
-
-                        console.log('PDF encryption successful. Result ID:', data.result_id);
-                    } else {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    console.error('PDF Encryption Error:', error);
-                    showMessage('error', translations[currentLang].errorProcessing + error.message);
-                })
-                .finally(() => {
-                    // Re-enable button
-                    encryptPdfBtn.disabled = false;
+            try {
+                const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
+                    credentials: 'include'
                 });
+                const responseText = await keyResponse.text();
+                let keyData;
+                try {
+                    keyData = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse API key response:', e);
+                    throw new Error('Invalid API key response');
+                }
+                if (!keyData.success) {
+                    throw new Error('Failed to get API key: ' + (keyData.error || 'Unknown error'));
+                }
+                const apiKey = keyData.api_key;
+                if (!apiKey) {
+                    throw new Error('No API key returned');
+                }
+
+                // Send request to the server
+                fetch('/myapp/backend/api/api_encrypt_pdf.php', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': apiKey
+                    },
+                    body: formData,
+                    credentials: 'include'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('Server error response:', text);
+                                throw new Error(`Server error: ${response.status}`);
+                            });
+                        }
+
+                        return response.text().then(text => {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                console.error('Failed to parse JSON response:', text);
+                                throw new Error('Server returned invalid JSON response');
+                            }
+                        });
+                    })
+                    .then(data => {
+                        if (data.success && data.result_id) {
+                            showMessage('success', translations[currentLang].success);
+
+                            // Set download link
+                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
+                            resultContainer.classList.remove('hidden');
+
+                            console.log('PDF encryption successful. Result ID:', data.result_id);
+                        } else {
+                            throw new Error(data.error || 'Unknown error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('PDF Encryption Error:', error);
+                        showMessage('error', translations[currentLang].errorProcessing + error.message);
+                    })
+            } catch (error) {
+                console.error('PDF Processing Error:', error);
+                showMessage('error', translations[currentLang].errorMerge + error.message);
+            } finally {
+                encryptPdfBtn.disabled = false;
+            }
         }
 
         // Show a message to the user

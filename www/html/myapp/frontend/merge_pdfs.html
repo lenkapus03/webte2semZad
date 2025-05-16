@@ -441,7 +441,7 @@
         // Merge button click event
         mergeBtn.addEventListener('click', mergePDFs);
 
-        function mergePDFs() {
+        async function mergePDFs() {
             if (selectedFiles.length < 2) {
                 showMessage('error', translations[currentLang].errorNoFiles);
                 return;
@@ -464,50 +464,76 @@
             console.log('Sending request to merge PDFs...');
             console.log('Number of files:', selectedFiles.length);
 
-            // Send request to the server
-            fetch('/myapp/backend/pdf/merge_pdfs.php', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            console.error('Server error response:', text);
-                            throw new Error(`Server error: ${response.status}`);
-                        });
-                    }
-
-                    return response.text().then(text => {
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            console.error('Failed to parse JSON response:', text);
-                            throw new Error('Server returned invalid JSON response');
-                        }
-                    });
-                })
-                .then(data => {
-                    if (data.success && data.result_id) {
-                        showMessage('success', translations[currentLang].success);
-
-                        // Set download link with target="_blank" to open in new tab
-                        downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                        resultContainer.classList.remove('hidden');
-
-                        console.log('PDF merge successful. Result ID:', data.result_id);
-                    } else {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    console.error('PDF Merge Error:', error);
-                    showMessage('error', translations[currentLang].errorMerge + error.message);
-                })
-                .finally(() => {
-                    // Re-enable merge button
-                    updateMergeButton();
+            try {
+                // First, get the API key
+                const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
+                    credentials: 'include'
                 });
+                const responseText = await keyResponse.text();
+                let keyData;
+                try {
+                    keyData = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse API key response:', e);
+                    throw new Error('Invalid API key response');
+                }
+                if (!keyData.success) {
+                    throw new Error('Failed to get API key: ' + (keyData.error || 'Unknown error'));
+                }
+                const apiKey = keyData.api_key;
+                if (!apiKey) {
+                    throw new Error('No API key returned');
+                }
+                // Now proceed with the merge operation using the API key
+                fetch('/myapp/backend/api/api_merge_pdfs.php', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': apiKey
+                    },
+                    body: formData,
+                    credentials: 'include'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('Server error response:', text);
+                                throw new Error(`Server error: ${response.status}`);
+                            });
+                        }
+
+                        return response.text().then(text => {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                console.error('Failed to parse JSON response:', text);
+                                throw new Error('Server returned invalid JSON response');
+                            }
+                        });
+                    })
+                    .then(data => {
+                        if (data.success && data.result_id) {
+                            showMessage('success', translations[currentLang].success);
+
+                            // Set download link with target="_blank" to open in new tab
+                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
+                            resultContainer.classList.remove('hidden');
+
+                            console.log('PDF merge successful. Result ID:', data.result_id);
+                        } else {
+                            throw new Error(data.error || 'Unknown error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('PDF Merge Error:', error);
+                        showMessage('error', translations[currentLang].errorMerge + error.message);
+                    })
+            } catch (error) {
+                console.error('PDF Merge Error:', error);
+                showMessage('error', translations[currentLang].errorMerge + error.message);
+            } finally {
+                // Re-enable merge button
+                updateMergeButton();
+            }
         }
 
         // Show a message to the user

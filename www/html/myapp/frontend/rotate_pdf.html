@@ -708,7 +708,7 @@
         });
 
         // Apply rotations to PDF
-        function applyRotations() {
+        async function applyRotations() {
             showMessage('info', translations[currentLang].rotating);
             applyBtn.disabled = true;
 
@@ -717,42 +717,68 @@
             formData.append('file', selectedFile);
             formData.append('rotations', JSON.stringify(pageRotations));
 
-            // Send to server
-            fetch('/myapp/backend/pdf/rotate_pdf.php', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            console.error('Server error response:', text);
-                            throw new Error(`Server error: ${response.status}`);
-                        });
-                    }
-
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.result_id) {
-                        showMessage('success', translations[currentLang].success);
-
-                        // Set download link
-                        downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                        resultContainer.classList.remove('hidden');
-
-                        console.log('PDF rotation successful. Result ID:', data.result_id);
-                    } else {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    console.error('PDF Rotation Error:', error);
-                    showMessage('error', translations[currentLang].errorRotate + error.message);
-                })
-                .finally(() => {
-                    applyBtn.disabled = false;
+            try {
+                const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
+                    credentials: 'include'
                 });
+                const responseText = await keyResponse.text();
+                let keyData;
+                try {
+                    keyData = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse API key response:', e);
+                    throw new Error('Invalid API key response');
+                }
+                if (!keyData.success) {
+                    throw new Error('Failed to get API key: ' + (keyData.error || 'Unknown error'));
+                }
+                const apiKey = keyData.api_key;
+                if (!apiKey) {
+                    throw new Error('No API key returned');
+                }
+
+                // Send to server
+                fetch('/myapp/backend/api/api_rotate_pdf.php', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': apiKey
+                    },
+                    body: formData,
+                    credentials: 'include'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('Server error response:', text);
+                                throw new Error(`Server error: ${response.status}`);
+                            });
+                        }
+
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success && data.result_id) {
+                            showMessage('success', translations[currentLang].success);
+
+                            // Set download link
+                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
+                            resultContainer.classList.remove('hidden');
+
+                            console.log('PDF rotation successful. Result ID:', data.result_id);
+                        } else {
+                            throw new Error(data.error || 'Unknown error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('PDF Rotation Error:', error);
+                        showMessage('error', translations[currentLang].errorRotate + error.message);
+                    })
+            } catch (error) {
+                console.error('PDF Processing Error:', error);
+                showMessage('error', translations[currentLang].errorMerge + error.message);
+            } finally {
+                applyBtn.disabled = false;
+            }
         }
 
         // Show a message to the user

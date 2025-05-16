@@ -904,7 +904,7 @@
     });
 
     // Process removal of pages
-    function processExtraction() {
+    async function processExtraction() {
       showMessage('info', translations[currentLang].processing);
       applyBtn.disabled = true;
 
@@ -912,36 +912,65 @@
       formData.append('file', selectedFile);
       formData.append('pages_to_keep', JSON.stringify(pagesToKeep));
 
-      fetch('/myapp/backend/pdf/extract_pages.php', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      })
-              .then(response => {
-                if (!response.ok) {
-                  return response.text().then(text => {
-                    console.error('Server error response:', text);
-                    throw new Error(`Server error: ${response.status}`);
-                  });
-                }
-                return response.json();
-              })
-              .then(data => {
-                if (data.success && data.result_id) {
-                  showMessage('success', translations[currentLang].success);
-                  downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                  resultContainer.classList.remove('hidden');
-                } else {
-                  throw new Error(data.error || 'Unknown error');
-                }
-              })
-              .catch(error => {
-                console.error('PDF Processing Error:', error);
-                showMessage('error', translations[currentLang].errorProcess + error.message);
-              })
-              .finally(() => {
-                applyBtn.disabled = false;
-              });
+      try {
+        const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
+          credentials: 'include'
+        });
+        const responseText = await keyResponse.text();
+        let keyData;
+        try {
+          keyData = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Failed to parse API key response:', e);
+          throw new Error('Invalid API key response');
+        }
+        if (!keyData.success) {
+          throw new Error('Failed to get API key: ' + (keyData.error || 'Unknown error'));
+        }
+        const apiKey = keyData.api_key;
+        if (!apiKey) {
+          throw new Error('No API key returned');
+        }
+
+          fetch('/myapp/backend/api/api_extract_pages.php', {
+            method: 'POST',
+            headers: {
+              'X-API-KEY': apiKey
+            },
+            body: formData,
+            credentials: 'include'
+          })
+                .then(response => {
+                  if (!response.ok) {
+                    return response.text().then(text => {
+                      console.error('Server error response:', text);
+                      throw new Error(`Server error: ${response.status}`);
+                    });
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  if (data.success && data.result_id) {
+                    showMessage('success', translations[currentLang].success);
+                    downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
+                    resultContainer.classList.remove('hidden');
+                  } else {
+                    throw new Error(data.error || 'Unknown error');
+                  }
+                })
+                .catch(error => {
+                  console.error('PDF Processing Error:', error);
+                  showMessage('error', translations[currentLang].errorProcess + error.message);
+                })
+                .finally(() => {
+                  applyBtn.disabled = false;
+                });
+      } catch (error) {
+        console.error('PDF Processing Error:', error);
+        showMessage('error', translations[currentLang].errorMerge + error.message);
+      } finally {
+        applyBtn.disabled = false;
+      }
     }
 
     // Show a message to the user
