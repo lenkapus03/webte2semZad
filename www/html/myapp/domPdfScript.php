@@ -1,6 +1,14 @@
 <?php
 
 
+$langCode = $_GET['lang'] ?? $_SESSION['lang'] ?? 'sk';
+$_SESSION['lang'] = $langCode;
+
+
+require __DIR__ . '/lang.php';
+/** @var array $lang */
+$t = $lang[$langCode] ?? $lang['sk'];
+
 require __DIR__ . '/../vendor/autoload.php';
 
 use Dompdf\Dompdf;
@@ -13,11 +21,13 @@ $dompdf = new Dompdf($options);
 $isPdf = true; // aktivuje podmienku
 // získať HTML obsahu z návodu
 ob_start();
-include 'manual.html';  // rovnaký obsah ako používateľská stránka
+include 'dynamicManual.php';  // rovnaký obsah ako používateľská stránka
 $html = ob_get_clean();
 
 $dompdf->loadHtml($html);
 $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
-$dompdf->stream("navod.pdf");
+$dompdf->stream("navod_$langCode.pdf");
+
+
 
