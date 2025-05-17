@@ -72,3 +72,8 @@ composer.lock
 cd webte2semZad
 docker-compose build
 docker-compose up -d
+
+TODO: kniznica na report ku porovnaniu pdf
+Inštalácia DomPDF cez Composer (na hoste)
+cd www/html
+composer require mpdf/mpdf
