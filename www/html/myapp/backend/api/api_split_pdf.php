@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 
 // Include required files
@@ -24,6 +25,10 @@ header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 
 // Handle non-OPTIONS requests
 $response = ['success' => false];
+
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
 
 try {
     // Check if method is allowed
@@ -55,10 +60,6 @@ try {
 
     $username = $user['username'];
 
-    //toto treba pridat aby sa zobrazovala akcia v user history
-    if (isset($username)) {
-        logUserAction($username, 'split_pdf', 'api');
-    }
 
     // Handle different request methods
     switch ($_SERVER['REQUEST_METHOD']) {
@@ -94,9 +95,13 @@ try {
                 throw new Exception('No file uploaded', 400);
             }
 
+            logUserAction($username, 'split_pdf', getRequestSource());
+
             // Include the split_pdf.php script
             include __DIR__ . '/../pdf/split_pdf.php';
             // The script will handle the response, so we exit here
+
+
             exit;
 
         default:

@@ -25,6 +25,10 @@ header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 // Handle non-OPTIONS requests
 $response = ['success' => false];
 
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
+
 try {
     // Check if method is allowed
     if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
@@ -55,10 +59,7 @@ try {
 
     $username = $user['username'];
     
-     //toto treba pridat aby sa zobrazovala akcia v user history
-    if (isset($username)) {
-        logUserAction($username, 'rotate_pdf', 'api');
-    }
+
 
     // Handle different request methods
     switch ($_SERVER['REQUEST_METHOD']) {
@@ -98,9 +99,12 @@ try {
                 throw new Exception('No file uploaded', 400);
             }
 
+            logUserAction($username, 'rotate_pdf', getRequestSource());
+
             // Include the rotate_pdf.php script
             include __DIR__ . '/../pdf/rotate_pdf.php';
             // The script will handle the response, so we exit here
+
             exit;
 
         default:

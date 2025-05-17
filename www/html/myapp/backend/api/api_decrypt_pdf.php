@@ -26,6 +26,10 @@ header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 // Handle non-OPTIONS requests
 $response = ['success' => false];
 
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
+
 try {
     // Check if method is allowed
     if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
@@ -91,9 +95,12 @@ try {
                 throw new Exception('No file uploaded', 400);
             }
 
+            logUserAction($username, 'decrypt_pdf', getRequestSource());
+
             // Include the encrypt_pdf.php script
             include __DIR__ . '/../pdf/decrypt_pdf.php';
             // The script will handle the response, so we exit here
+
             exit;
 
         default:

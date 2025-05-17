@@ -3,6 +3,8 @@
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
+session_start();
+
 // Include required files
 require_once __DIR__ . '/../../../../config.php';
 require_once __DIR__ . '/../auth/utilities.php';
@@ -59,13 +61,19 @@ try {
         throw new Exception('Invalid result ID format', 400);
     }
 
-    // Path to the merged PDF file
-    $filePath = __DIR__ . '/../pdf/results/' . $resultId . '.pdf';
-
-    // Check if the file exists
-    if (!file_exists($filePath)) {
-        throw new Exception('File not found', 404);
+    // Check if result ID matches session data
+    if (!isset($_SESSION['pdf_id']) || $_SESSION['pdf_id'] !== $resultId) {
+        throw new Exception('Invalid or expired download session', 404);
     }
+
+    // Retrieve the file path from the session
+    if (!isset($_SESSION['pdf_file']) || !file_exists($_SESSION['pdf_file'])) {
+        throw new Exception('File not found or session expired', 404);
+    }
+    $filePath = $_SESSION['pdf_file'];
+
+    // Set filename from session if available, otherwise use default
+    $filename = $_SESSION['pdf_original_filename'] ?? 'merged_document.pdf';
 
     // Log the download action
     if (function_exists('logUserAction')) {
@@ -79,11 +87,17 @@ try {
 
     // Set headers for file download
     header('Content-Type: application/pdf');
-    header('Content-Disposition: attachment; filename="merged_document.pdf"');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Content-Length: ' . filesize($filePath));
 
     // Output the file
     readfile($filePath);
+
+    // Optional: Clean up session data after download
+    unset($_SESSION['pdf_id']);
+    unset($_SESSION['pdf_file']);
+    unset($_SESSION['pdf_original_filename']);
+
     exit;
 
 } catch (Exception $e) {

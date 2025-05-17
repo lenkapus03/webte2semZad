@@ -492,7 +492,8 @@
                 fetch('/myapp/backend/api/api_merge_pdfs.php', {
                     method: 'POST',
                     headers: {
-                        'X-API-KEY': apiKey
+                        'X-API-KEY': apiKey,
+                        'X-Request-Source': 'frontend'
                     },
                     body: formData,
                     credentials: 'include'

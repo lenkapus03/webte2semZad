@@ -1,12 +1,11 @@
 <?php
 header('Content-Type: application/json');
+session_start();
 
 // Include required files
 require_once __DIR__ . '/../../../../config.php';
 require_once __DIR__ . '/../auth/utilities.php';
 require_once __DIR__ . '/../auth/api_key.php';
-
-
 
 // Define allowed methods for the endpoint
 $allowed_methods = ['POST', 'GET', 'OPTIONS'];
@@ -26,6 +25,10 @@ header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 
 // Handle non-OPTIONS requests
 $response = ['success' => false];
+
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
 
 try {
     // Check if method is allowed
@@ -57,11 +60,6 @@ try {
 
     $username = $user['username'];
 
-    //toto treba pridat aby sa zobrazovala akcia v user history
-    if (isset($username)) {
-        logUserAction($username, 'merge_pdf', 'api');
-    }
-
     // Handle different request methods
     switch ($_SERVER['REQUEST_METHOD']) {
         case 'GET':
@@ -88,8 +86,16 @@ try {
             break;
 
         case 'POST':
+            // Generate a unique result ID here
+            $resultId = uniqid();
+
+            // Define the expected save path for merge_pdfs.php
+            $outputPath = __DIR__ . '/../pdf/results/' . $resultId . '.pdf';
+
+            // Pass the output path as a POST parameter to merge_pdfs.php
+            $_POST['output_path'] = $outputPath;
+
             // Forward the request to the merge_pdfs.php script
-            // We'll do this by including the script and letting it handle the response
             $_SERVER['HTTP_X_API_KEY'] = $apiKey; // Ensure API key is passed
 
             // Get the file from the current request
@@ -97,10 +103,43 @@ try {
                 throw new Exception('No files uploaded', 400);
             }
 
-            // Include the merge_pdfs.php script
+            logUserAction($username, 'merge_pdf', getRequestSource());
+
+            // Buffer the output of merge_pdfs.php
+            ob_start();
             include __DIR__ . '/../pdf/merge_pdfs.php';
-            // The script will handle the response, so we exit here
-            exit;
+            $mergePdfOutput = ob_get_clean();
+
+            // Decode the JSON response from merge_pdfs.php
+            $mergePdfResult = json_decode($mergePdfOutput, true);
+
+            if ($mergePdfResult && $mergePdfResult['success'] && isset($mergePdfResult['result_id'])) {
+                // Store necessary information in the session for the download script
+                if (!isset($_SESSION['pdf_id'])) {
+                    $_SESSION['pdf_id'] = $mergePdfResult['result_id'];
+                }
+
+                // Keep original default name only if not already set
+                if (!isset($_SESSION['pdf_original_filename'])) {
+                    $_SESSION['pdf_original_filename'] = 'merged_document.pdf';
+                }
+
+                $response = [
+                    'success' => true,
+                    'result_id' => $mergePdfResult['result_id'],
+                    'message' => $mergePdfResult['message'] ?? 'PDFs merged successfully',
+                    'file_count' => $mergePdfResult['file_count'] ?? count($_FILES['files'])
+                ];
+            } else {
+                // If merge_pdfs.php failed, return its error message
+                $response = [
+                    'success' => false,
+                    'error' => $mergePdfResult['error'] ?? 'Failed to merge PDFs'
+                ];
+                http_response_code(500); // Or another appropriate error code
+            }
+
+            break;
 
         default:
             throw new Exception('Method not allowed', 405);

@@ -25,6 +25,10 @@ header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 // Handle non-OPTIONS requests
 $response = ['success' => false];
 
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
+
 try {
     // Check if method is allowed
     if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
@@ -54,11 +58,6 @@ try {
     }
 
     $username = $user['username'];
-
-    //toto treba pridat aby sa zobrazovala akcia v user history
-    if (isset($username)) {
-        logUserAction($username, 'remove_pdf', 'api');
-    }
 
     // Handle different request methods
     switch ($_SERVER['REQUEST_METHOD']) {
@@ -101,9 +100,12 @@ try {
                 throw new Exception('No pages to remove specified', 400);
             }
 
+            logUserAction($username, 'remove_pages_pdf', getRequestSource());
+
             // Include the remove_pages.php script
             include __DIR__ . '/../pdf/remove_pages.php';
             // The script will handle the response, so we exit here
+
             exit;
 
         default:

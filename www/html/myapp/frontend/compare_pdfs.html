@@ -447,7 +447,8 @@
                 'hideDiff': 'Hide differences',
                 'noDifferences': 'No differences found',
                 'previous': 'Previous',
-                'next': 'Next'
+                'next': 'Next',
+                'downloadReport': 'Download Report'
             },
             'sk': {
                 'title': 'Porovnať PDF súbory',
@@ -487,7 +488,8 @@
                 'hideDiff': 'Skryť rozdiely',
                 'noDifferences': 'Žiadne rozdiely neboli nájdené',
                 'previous': 'Predchádzajúca',
-                'next': 'Nasledujúca'
+                'next': 'Nasledujúca',
+                'downloadReport': 'Stiahnuť správu'
             }
         };
 
@@ -552,6 +554,10 @@
             // Update remove buttons
             document.querySelectorAll('.remove-btn').forEach(btn => {
                 btn.textContent = translations[lang].remove;
+            });
+
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.textContent = translations[lang].downloadReport;
             });
 
             optionsTitle.textContent = translations[lang].optionsTitle;
@@ -685,7 +691,7 @@
         // Compare button click event
         compareBtn.addEventListener('click', comparePDFs);
 
-        function comparePDFs() {
+        async function comparePDFs() {
             if (!selectedFile1 || !selectedFile2) {
                 showMessage('error', translations[currentLang].errorNoFiles);
                 return;
@@ -699,40 +705,78 @@
             showMessage('info', translations[currentLang].processing);
             compareBtn.disabled = true;
 
-            const formData = new FormData();
-            formData.append('file1', selectedFile1);
-            formData.append('file2', selectedFile2);
-            formData.append('compare_metadata', compareMetadata.checked ? '1' : '0');
-            formData.append('compare_images', compareImages.checked ? '1' : '0');
-            formData.append('detailed_results', detailedResults.checked ? '1' : '0');
-
-            fetch('/myapp/backend/pdf/compare_pdfs.php', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showMessage('success', translations[currentLang].success);
-                        currentComparisonData = data;
-                        displayResults(data);
-                        resultContainer.classList.remove('hidden');
-                    } else {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    showMessage('error', translations[currentLang].errorCompare + error.message);
-                })
-                .finally(() => {
-                    compareBtn.disabled = false;
+            try {
+                const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
+                    credentials: 'include'
                 });
+                const responseText = await keyResponse.text();
+                let keyData;
+                try {
+                    keyData = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse API key response:', e);
+                    throw new Error('Invalid API key response');
+                }
+
+                if (!keyData.success) {
+                    throw new Error('Failed to get API key: ' + (keyData.error || 'Unknown error'));
+                }
+
+                const apiKey = keyData.api_key;
+                if (!apiKey) {
+                    throw new Error('No API key returned');
+                }
+
+                const formData = new FormData();
+                formData.append('file1', selectedFile1);
+                formData.append('file2', selectedFile2);
+                formData.append('compare_metadata', compareMetadata.checked ? '1' : '0');
+                formData.append('compare_images', compareImages.checked ? '1' : '0');
+                formData.append('detailed_results', detailedResults.checked ? '1' : '0');
+
+                const response = await fetch('/myapp/backend/api/api_compare_pdfs.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-API-KEY': apiKey,
+                        'X-Request-Source': 'frontend'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('success', translations[currentLang].success);
+                    currentComparisonData = data;
+                    displayResults(data);
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (error) {
+                showMessage('error', translations[currentLang].errorCompare + error.message);
+            } finally {
+                compareBtn.disabled = false;
+            }
         }
 
         // Display comparison results
         function displayResults(data) {
             comparisonResults.innerHTML = '';
+
+            if (data.download_url) {
+                const downloadContainer = document.createElement('div');
+                downloadContainer.className = 'download-container';
+
+                const downloadBtn = document.createElement('a');
+                downloadBtn.className = 'btn download-btn';
+                downloadBtn.href = data.download_url;
+                downloadBtn.textContent = translations[currentLang].downloadReport;
+                downloadBtn.download = 'pdf_comparison_report.pdf'; // Suggest a filename
+
+                downloadContainer.appendChild(downloadBtn);
+                comparisonResults.appendChild(downloadContainer);
+            }
 
             if (data.identical) {
                 const resultItem = document.createElement('div');
@@ -770,12 +814,14 @@
 
             // Count matching pages
             if (data.page_comparisons) {
-                let matchingPages = 0;
-                data.page_comparisons.forEach(page => {
-                    if (page.identical) {
-                        matchingPages++;
-                    }
-                });
+                let matchingPages = data.matching_pages || 0;
+                if (matchingPages === 0) {
+                    data.page_comparisons.forEach(page => {
+                        if (page.identical) {
+                            matchingPages++;
+                        }
+                    });
+                }
 
                 const contentMatchItem = document.createElement('div');
                 contentMatchItem.className = 'result-item';

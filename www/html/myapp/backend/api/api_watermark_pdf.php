@@ -25,6 +25,10 @@ header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 // Handle non-OPTIONS requests
 $response = ['success' => false];
 
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
+
 try {
     // Check if method is allowed
     if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
@@ -54,11 +58,6 @@ try {
     }
 
     $username = $user['username'];
-
-    // Log user action
-    if (isset($username)) {
-        logUserAction($username, 'watermark_pdf', 'api');
-    }
 
     // Handle different request methods
     switch ($_SERVER['REQUEST_METHOD']) {
@@ -104,9 +103,12 @@ try {
                 throw new Exception('Watermark text is required', 400);
             }
 
+            logUserAction($username, 'watermark_pdf', getRequestSource());
+
             // Include the watermark_pdf.php script
             include __DIR__ . '/../pdf/watermark_pdf.php';
             // The script will handle the response, so we exit here
+
             exit;
 
         default:

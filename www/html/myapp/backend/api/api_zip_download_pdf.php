@@ -3,6 +3,8 @@
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
+session_start();
+
 // Include required files
 require_once __DIR__ . '/../../../../config.php';
 require_once __DIR__ . '/../auth/utilities.php';
@@ -59,13 +61,22 @@ try {
         throw new Exception('Invalid result ID format', 400);
     }
 
-    // Path to the split PDF ZIP file
-    $filePath = __DIR__ . '/../pdf/results/' . $resultId . '.zip';
+    // Check if result ID matches session data
+    if (!isset($_SESSION['pdf_zip_id']) || $_SESSION['pdf_zip_id'] !== $resultId) {
+        throw new Exception('Invalid or expired download session', 404);
+    }
 
-    // Check if the file exists
+    $filePath = $_SESSION['pdf_zip_file'];
+
+    // Verify the file exists
     if (!file_exists($filePath)) {
         throw new Exception('File not found', 404);
     }
+
+    // Set filename from session if available, otherwise use default
+    $filename = isset($_SESSION['pdf_zip_original_filename'])
+        ? $_SESSION['pdf_zip_original_filename'] . '_split_pages.zip'
+        : 'split_pages.zip';
 
     // Log the download action
     if (function_exists('logUserAction')) {
@@ -73,13 +84,12 @@ try {
             logUserAction($username, 'api_zip_download_pdf', 'api');
         } catch (Exception $e) {
             error_log("Failed to log download action: " . $e->getMessage());
-            // Continue even if logging fails
         }
     }
 
     // Set headers for file download
     header('Content-Type: application/zip');
-    header('Content-Disposition: attachment; filename="split_pages.zip"');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Content-Length: ' . filesize($filePath));
 
     // Output the file

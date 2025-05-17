@@ -1,13 +1,12 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
-mb_internal_encoding('UTF-8');
+ob_start(); // Start output buffering
 
 // Disable PHP error display in output but log them
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 // Set max execution time to handle larger files
-ini_set('max_execution_time', 300);
+ini_set('max_execution_time', 300); // 5 minutes
 
 // Set memory limit for larger files
 ini_set('memory_limit', '256M');
@@ -25,6 +24,8 @@ $response = [
     'file2_pages' => 0,
     'matching_pages' => 0,
     'metadata_match' => false,
+    'compare_images' => false,
+    'detailed_results' => false,
     'debug' => []
 ];
 
@@ -42,6 +43,12 @@ function isPDF($file) {
 }
 
 try {
+    $resultId = uniqid(); // Generate a unique ID for this comparison
+    $resultDir = sys_get_temp_dir() . '/pdf_comparison_results_' . md5($username) . '/';
+    if (!is_dir($resultDir)) {
+        mkdir($resultDir, 0755, true);
+    }
+
     // Check for POST method
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Method not allowed', 405);
@@ -90,7 +97,7 @@ try {
     $compareImages = isset($_POST['compare_images']) && $_POST['compare_images'] === '1';
     $detailedResults = isset($_POST['detailed_results']) && $_POST['detailed_results'] === '1';
 
-    // Create Python script
+    // Create Python script with image comparison using tags
     $pythonScript = <<<'EOT'
 #!/usr/bin/env python3
 import sys
@@ -127,7 +134,8 @@ def extract_images(page):
                     data = xobj.get_data()
                     images.append({
                         'data': data,
-                        'hash': get_image_hash(data)
+                        'hash': get_image_hash(data),
+                        'tags': ['image']  # Adding tags for image comparison
                     })
     except Exception:
         pass
@@ -143,7 +151,13 @@ def compare_pdfs(file1, file2, compare_metadata, compare_images):
             'file2_pages': len(pdf2.pages),
             'metadata_match': not compare_metadata or (str(pdf1.metadata) == str(pdf2.metadata)),
             'page_comparisons': [],
-            'identical': True
+            'identical': True,
+            'image_comparison': {
+                'enabled': compare_images,
+                'matches': 0,
+                'mismatches': 0,
+                'details': []
+            }
         }
         
         min_pages = min(result['file1_pages'], result['file2_pages'])
@@ -156,21 +170,44 @@ def compare_pdfs(file1, file2, compare_metadata, compare_images):
             text2 = safe_text(page2.extract_text() or "")
             
             page_result = {
+                'page_number': i + 1,
                 'text_match': text1 == text2,
                 'text_diff': ''.join(difflib.ndiff(
                     text1.splitlines(keepends=True),
                     text2.splitlines(keepends=True)
                 )) if text1 != text2 else '',
-                'identical': text1 == text2
+                'identical': text1 == text2,
+                'images': []
             }
             
             if compare_images:
                 images1 = extract_images(page1)
                 images2 = extract_images(page2)
-                hashes1 = [img['hash'] for img in images1 if img['hash']]
-                hashes2 = [img['hash'] for img in images2 if img['hash']]
-                page_result['images_match'] = hashes1 == hashes2
-                page_result['identical'] = page_result['identical'] and page_result['images_match']
+                
+                # Compare images by their tags and hashes
+                for img_idx, (img1, img2) in enumerate(zip(images1, images2)):
+                    img_comparison = {
+                        'image_number': img_idx + 1,
+                        'tags_match': img1['tags'] == img2['tags'],
+                        'hash_match': img1['hash'] == img2['hash'],
+                        'identical': img1['hash'] == img2['hash'] and img1['tags'] == img2['tags']
+                    }
+                    
+                    if img_comparison['identical']:
+                        result['image_comparison']['matches'] += 1
+                    else:
+                        result['image_comparison']['mismatches'] += 1
+                    
+                    page_result['images'].append(img_comparison)
+                    result['image_comparison']['details'].append({
+                        'page': i + 1,
+                        'image': img_idx + 1,
+                        'result': 'match' if img_comparison['identical'] else 'mismatch'
+                    })
+                
+                page_result['identical'] = page_result['identical'] and all(
+                    img['identical'] for img in page_result['images']
+                )
             
             result['page_comparisons'].append(page_result)
             if not page_result['identical']:
@@ -215,6 +252,17 @@ EOT;
         throw new Exception($comparisonResults['error'] ?? "Failed to parse comparison results", 500);
     }
 
+    $resultData = [
+        'file1_name' => $file1['name'],
+        'file2_name' => $file2['name'],
+        'comparison' => $comparisonResults,
+        'timestamp' => time(),
+        'result_id' => $resultId
+    ];
+
+    $resultPath = $resultDir . $resultId . '.json';
+    file_put_contents($resultPath, json_encode($resultData));
+
     // Build final response
     $response = [
         'success' => true,
@@ -224,19 +272,25 @@ EOT;
         'matching_pages' => $comparisonResults['matching_pages'] ?? 0,
         'metadata_match' => $comparisonResults['metadata_match'] ?? false,
         'compare_images' => $compareImages,
-        'detailed_results' => $detailedResults
+        'detailed_results' => $detailedResults,
+        'download_url' => '/myapp/backend/api/api_download_comparison.php?id=' . $resultId,
+        'result_id' => $resultId
     ];
+
+
+    // Include image comparison results if enabled
+    if ($compareImages && isset($comparisonResults['image_comparison'])) {
+        $response['image_comparison'] = $comparisonResults['image_comparison'];
+    }
 
     // Conditionally include detailed results
     if ($detailedResults && !empty($comparisonResults['page_comparisons'])) {
         $response['page_comparisons'] = $comparisonResults['page_comparisons'];
     }
 
-    // Log user action
-    if (isset($_SESSION['username'])) {
-        require_once __DIR__ . '/../auth/utilities.php';
-        logUserAction($_SESSION['username'], 'compare_pdfs');
-    }
+
+    echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
 
 } catch (Exception $e) {
     $response['error'] = $e->getMessage();
@@ -253,6 +307,6 @@ $cleanup = function($path) {
 $cleanup($file1Path ?? null);
 $cleanup($file2Path ?? null);
 $cleanup($pythonScriptPath ?? null);
-@rmdir($uploadDir ?? null);
 
-echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+ob_end_flush(); // Send the buffer and turn off buffering
+exit();

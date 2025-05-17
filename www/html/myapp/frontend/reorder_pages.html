@@ -742,7 +742,8 @@
                 fetch('/myapp/backend/api/api_reorder_pages.php', {
                     method: 'POST',
                     headers: {
-                        'X-API-KEY': apiKey
+                        'X-API-KEY': apiKey,
+                        'X-Request-Source': 'frontend'
                     },
                     body: formData,
                     credentials: 'include'

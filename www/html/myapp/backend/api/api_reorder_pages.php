@@ -25,6 +25,11 @@ header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 // Handle non-OPTIONS requests
 $response = ['success' => false];
 
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
+
+
 try {
     // Check if method is allowed
     if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
@@ -97,9 +102,12 @@ try {
             // Add action parameter for the backend script
             $_POST['action'] = 'reorder';
 
+            logUserAction($username, 'reorder_pdf', getRequestSource());
+
             // Include the reorder_pages.php script
             include __DIR__ . '/../pdf/reorder_pages.php';
             // The script will handle the response, so we exit here
+
             exit;
 
         default:

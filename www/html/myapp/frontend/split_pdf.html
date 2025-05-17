@@ -400,7 +400,8 @@
                 fetch('/myapp/backend/api/api_split_pdf.php', {
                     method: 'POST',
                     headers: {
-                        'X-API-KEY': apiKey
+                        'X-API-KEY': apiKey,
+                        'X-Request-Source': 'frontend'
                     },
                     body: formData,
                     credentials: 'include'

@@ -25,6 +25,10 @@ header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 // Handle non-OPTIONS requests
 $response = ['success' => false];
 
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
+
 try {
     // Check if method is allowed
     if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
@@ -96,9 +100,13 @@ try {
                 throw new Exception('No pages to keep specified', 400);
             }
 
+            logUserAction($username, 'extract_pdf', getRequestSource());
+
             // Include the remove_pages.php script
             include __DIR__ . '/../pdf/extract_pages.php';
             // The script will handle the response, so we exit here
+
+
             exit;
 
         default:

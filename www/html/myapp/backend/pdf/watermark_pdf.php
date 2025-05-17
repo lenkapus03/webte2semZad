@@ -345,12 +345,6 @@ EOT;
         'debug' => $response['debug']
     ];
 
-    // Log user action if authenticated
-    if (isset($_SESSION['username'])) {
-        require_once __DIR__ . '/../auth/utilities.php';
-        logUserAction($_SESSION['username'], 'watermark_pdf');
-    }
-
     // Clean up uploaded file and temporary Python script
     if (file_exists($filePath)) {
         @unlink($filePath);
