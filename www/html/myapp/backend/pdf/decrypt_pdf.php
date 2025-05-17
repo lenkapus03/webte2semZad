@@ -210,24 +210,15 @@ EOT;
 
     $response['debug'][] = "Command output: " . implode("\n", $output);
     $response['debug'][] = "Return code: " . $returnCode;
-/*
-    // Check if the command was successful
-    if ($returnCode !== 0) {
-        throw new Exception("Python decryption failed: " . implode("\n", $output), 500);
-    }*/
-    /*
+
+
     if ($returnCode !== 0) {
         $outputMessage = implode("\n", $output);
         if (strpos($outputMessage, 'Incorrect password') !== false) {
-            throw new Exception("Incorrect password", 401); // Unauthorized, alebo 400
+            throw new Exception("Incorrect password", 422); // Unauthorized, alebo 400
         } else {
             throw new Exception("Python decryption failed: " . $outputMessage, 500);
         }
-    }
-    */
-
-    if ($returnCode !== 0) {
-        throw new Exception("Python script failed: " . implode("\n", $output), 500);
     }
 
     // Verify the output file exists

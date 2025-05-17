@@ -5,11 +5,16 @@ if (!isset($_SESSION['username'])) {
     header("Location: /myapp/auth/login.php");
     exit;
 }
+$langCode = $_GET['lang'] ?? $_SESSION['lang'] ?? 'sk';
+$_SESSION['lang'] = $langCode;
+/** @var array $lang */
+require_once __DIR__ . '/lang.php';
+$t = $lang[$langCode] ?? $lang['sk'];
 
 $isAdmin = $_SESSION['role'] === 'admin';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sk">
 <head>
     <meta charset="UTF-8">
     <title>PDF_app</title>
@@ -25,6 +30,22 @@ $isAdmin = $_SESSION['role'] === 'admin';
             --border-radius: 8px;
             --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             --transition: all 0.3s ease;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+
+        .topbar a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+
+        .topbar a:hover {
+            text-decoration: underline;
         }
 
         body {
@@ -282,110 +303,115 @@ $isAdmin = $_SESSION['role'] === 'admin';
 </head>
 <body>
 <div class="header">
-    <h1>PDF Processing App</h1>
+    <h1><?= $t['titleApp'] ?></h1>
     <div class="user-controls">
         <span>Welcome, <strong><?= htmlspecialchars($_SESSION['username']) ?></strong></span>
-        <a href="/myapp/backend/auth/logout.php" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="/myapp/backend/auth/logout.php" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i><?= $t['logout'] ?></a>
+        <div class="topbar">
+            <div class="right">
+                <a href="?lang=en">English</a> | <a href="?lang=sk">Slovensky</a>
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="api-section">
-    <h3><i class="fas fa-key"></i> API Access</h3>
-    <p>Generate and manage your API key to access PDF tools programmatically.</p>
-    <button id="regenApiKey" class="btn btn-secondary"><i class="fas fa-sync"></i> Generate New API Key</button>
+    <h3><i class="fas fa-key"></i> <?= $t['api_title'] ?></h3>
+    <p><?= $t['api_desc'] ?></p>
+    <button id="regenApiKey" class="btn btn-secondary"><i class="fas fa-sync"></i> <?= $t['generateApiKey'] ?></button>
     <p id="message" class="hidden"></p>
     <div id="apiKeyDisplay"></div>
 </div>
 <?php if ($isAdmin): ?>
     <div class="admin-section">
-        <h3><i class="fas fa-user-shield"></i> Admin Panel</h3>
-        <p>Access administrative tools and user history.</p>
-        <a href="/myapp/users_history.html" class="btn btn-warning"><i class="fas fa-history"></i> View User History</a>
+        <h3><i class="fas fa-user-shield"></i> <?= $t['admin_panel'] ?></h3>
+        <p><?= $t['admin_panel_desc'] ?></p>
+        <a href="/myapp/users_history.html" class="btn btn-warning"><i class="fas fa-history"> </i> <?= $t['viewuserhistory'] ?></a>
     </div>
 <?php endif; ?>
 
 
 <div class="tools-section">
-    <h2><i class="fas fa-tools"></i> PDF Tools</h2>
+    <h2><i class="fas fa-tools"></i> <?= $t['tools_title'] ?></h2>
     <div class="tools-grid">
         <div class="tool-card">
-            <h3><i class="fas fa-object-group"></i> Merge PDF</h3>
-            <p>Combine multiple PDF files into a single document with options for reordering pages.</p>
+            <h3><i class="fas fa-object-group"></i> <?= $t['merge'] ?></h3>
+            <p><?= $t['merge_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/merge_pdfs.html" class="btn"><i class="fas fa-link"></i> Use Tool</a>
+                <a href="/myapp/frontend/merge_pdfs.html" class="btn"><i class="fas fa-link"> </i><?= $t['use_tool'] ?></a>
             </div>
         </div>
 
         <div class="tool-card">
-            <h3><i class="fas fa-file-alt"></i> Split PDF</h3>
-            <p>Split PDF into individual pages and remove empty or unwanted pages.</p>
+            <h3><i class="fas fa-file-alt"></i> <?= $t['split'] ?></h3>
+            <p><?= $t['split_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/split_pdf.html" class="btn"><i class="fas fa-cut"></i> Use Tool</a>
-            </div>
-        </div>
-
-
-        <div class="tool-card">
-            <h3><i class="fas fa-sync-alt"></i> Rotate PDF</h3>
-            <p>Rotate PDF pages in any direction with interactive preview and bulk rotation options.</p>
-            <div class="btn-div">
-                <a href="/myapp/frontend/rotate_pdf.html" class="btn"><i class="fas fa-redo"></i> Use Tool</a>
-            </div>
-        </div>
-
-        <div class="tool-card">
-            <h3><i class="fas fa-trash-alt"></i> Remove PDF Pages</h3>
-            <p>Delete specific pages from PDF documents with an interactive page selection interface.</p>
-            <div class="btn-div">
-                <a href="/myapp/frontend/remove_pages.html" class="btn"><i class="fas fa-minus-circle"></i> Use Tool</a>
-            </div>
-        </div>
-
-        <div class="tool-card">
-            <h3><i class="fas fa-sort-amount-down"></i> Reorder PDF Pages</h3>
-            <p>Interactively rearrange pages in your PDF documents with drag-and-drop functionality.</p>
-            <div class="btn-div">
-                <a href="/myapp/frontend/reorder_pages.html" class="btn"><i class="fas fa-exchange-alt"></i> Use Tool</a>
-            </div>
-        </div>
-
-        <div class="tool-card">
-            <h3><i class="fas fa-lock"></i> Encrypt PDF</h3>
-            <p>Secure your PDF documents with password protection.</p>
-            <div class="btn-div">
-                <a href="/myapp/frontend/encrypt_pdf.html" class="btn"><i class="fas fa-key"></i> Use Tool</a>
-            </div>
-        </div>
-
-        <div class="tool-card">
-            <h3><i class="fas fa-balance-scale"></i> Compare PDFs</h3>
-            <p>Compare two PDF files to identify differences in content, metadata, and page count.</p>
-            <div class="btn-div">
-                <a href="/myapp/frontend/compare_pdfs.html" class="btn"><i class="fas fa-not-equal"></i> Use Tool</a>
+                <a href="/myapp/frontend/split_pdf.html" class="btn"><i class="fas fa-cut"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
 
         <div class="tool-card">
-            <h3><i class="fas fa-file-export"></i> Extract PDF Pages</h3>
-            <p>Extract and keep only selected pages from a PDF document.</p>
+            <h3><i class="fas fa-sync-alt"></i> <?= $t['rotate'] ?></h3>
+            <p><?= $t['rotate_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/extract_pages.html" class="btn"><i class="fas fa-file-export"></i> Use Tool</a>
-            </div>
-        </div>
-        <div class="tool-card">
-            <h3><i class="fas fa-unlock"></i> Unlock PDF</h3>
-            <p>Remove password protection from your PDF documents securely.</p>
-            <div class="btn-div">
-                <a href="/myapp/frontend/decrypt_pdf.html" class="btn"><i class="fas fa-unlock-alt"></i> Use Tool</a>
+                <a href="/myapp/frontend/rotate_pdf.html" class="btn"><i class="fas fa-redo"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
         <div class="tool-card">
-            <h3><i class="fas fa-stamp"></i> Watermark PDF</h3>
-            <p>Add text or image watermarks to your PDF documents with customizable positioning.</p>
+            <h3><i class="fas fa-trash-alt"></i> <?= $t['remove'] ?></h3>
+            <p><?= $t['remove_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/watermark_pdf.html" class="btn"><i class="fas fa-water"></i> Use Tool</a>
+                <a href="/myapp/frontend/remove_pages.html" class="btn"><i class="fas fa-minus-circle"></i> <?= $t['use_tool'] ?></a>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3><i class="fas fa-sort-amount-down"></i> <?= $t['reorder'] ?></h3>
+            <p><?= $t['reorder_desc'] ?></p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/reorder_pages.html" class="btn"><i class="fas fa-exchange-alt"></i> <?= $t['use_tool'] ?></a>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3><i class="fas fa-lock"></i> <?= $t['encrypt'] ?></h3>
+            <p><?= $t['encrypt_desc'] ?></p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/encrypt_pdf.html" class="btn"><i class="fas fa-key"></i> <?= $t['use_tool'] ?></a>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3><i class="fas fa-file-export"></i> <?= $t['extract'] ?></h3>
+            <p><?= $t['extract_desc'] ?></p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/extract_pages.html" class="btn"><i class="fas fa-file-export"></i> <?= $t['use_tool'] ?></a>
+            </div>
+        </div>
+        <div class="tool-card">
+            <h3><i class="fas fa-unlock"></i> <?= $t['unlock'] ?></h3>
+            <p><?= $t['unlock_desc'] ?></p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/decrypt_pdf.html" class="btn"><i class="fas fa-unlock-alt"></i> <?= $t['use_tool'] ?></a>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3><i class="fas fa-stamp"></i> <?= $t['watermark'] ?></h3>
+            <p><?= $t['watermark_desc'] ?></p>
+            <div class="btn-div">
+                <a href="/myapp/frontend/watermark_pdf.html" class="btn"><i class="fas fa-water"></i> <?= $t['use_tool'] ?></a>
+            </div>
+        </div>
+
+        <!-- Placeholder for future tools -->
+        <div class="tool-card" style="opacity: 0.6;">
+            <h3><i class="fas fa-compress-alt"></i> Compress PDF</h3>
+            <p>Reduce file size while maintaining quality (Coming soon).</p>
+            <div class="btn-div">
+                <button class="btn" disabled><i class="fas fa-clock"></i> Coming Soon</button>
             </div>
         </div>
 
@@ -394,15 +420,15 @@ $isAdmin = $_SESSION['role'] === 'admin';
 
 <div class="documentation-link">
     <a href="dynamicManual.php" class="btn btn-secondary">
-        <i class="fas fa-book"></i> Manual
+        <i class="fas fa-book"></i> <?= $t['manual'] ?>
     </a>
     <a href="/myapp/frontend/api-docs.html" class="btn btn-secondary">
-        <i class="fas fa-book"></i> OpenAPI Documentation
+        <i class="fas fa-book"></i> <?= $t['OpenAPI'] ?>
     </a>
 </div>
 
 <div class="footer">
-    <p>&copy; <?= date('Y') ?> PDF Processing App. All rights reserved.</p>
+    <p>&copy; <?= date('Y') ?> <?= $t['footer'] ?></p>
 </div>
 
 <script src="index.js" defer></script>

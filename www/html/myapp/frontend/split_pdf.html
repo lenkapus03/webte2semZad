@@ -142,7 +142,7 @@
 </head>
 <body>
 <div class="navigation">
-    <a href="/myapp/index.php">← Back to Dashboard</a>
+    <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -183,7 +183,8 @@
                 'errorNoFile': 'Please select a PDF file to split.',
                 'errorUpload': 'Error uploading file: ',
                 'errorSplit': 'Error splitting PDF file: ',
-                'remove': 'Remove'
+                'remove': 'Remove',
+                'back': '← Back to Dashboard'
             },
             'sk': {
                 'title': 'Rozdelenie PDF súboru',
@@ -196,7 +197,8 @@
                 'errorNoFile': 'Vyberte PDF súbor na rozdelenie.',
                 'errorUpload': 'Chyba pri nahrávaní súboru: ',
                 'errorSplit': 'Chyba pri rozdeľovaní PDF súboru: ',
-                'remove': 'Odstrániť'
+                'remove': 'Odstrániť',
+                'back': '← Späť na prehľad'
             }
         };
 
@@ -216,6 +218,7 @@
         const dropText = document.getElementById('dropText');
         const langEn = document.getElementById('lang-en');
         const langSk = document.getElementById('lang-sk');
+        const back = document.getElementById('back');
 
         // Selected file
         let selectedFile = null;
@@ -239,6 +242,7 @@
             selectFileBtn.textContent = translations[lang].selectFile;
             splitBtn.textContent = translations[lang].splitBtn;
             downloadLink.textContent = translations[lang].downloadLink;
+            back.textContent = translations[lang].back;
 
             // Update remove buttons
             document.querySelectorAll('.remove-btn').forEach(btn => {
@@ -353,7 +357,7 @@
         // Split button click event
         splitBtn.addEventListener('click', splitPDF);
 
-        function splitPDF() {
+        async function splitPDF() {
             if (!selectedFile) {
                 showMessage('error', translations[currentLang].errorNoFile);
                 return;
@@ -373,50 +377,74 @@
             // Log for debugging
             console.log('Sending request to split PDF...');
 
-            // Send request to the server
-            fetch('/myapp/backend/pdf/split_pdf.php', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            console.error('Server error response:', text);
-                            throw new Error(`Server error: ${response.status}`);
-                        });
-                    }
-
-                    return response.text().then(text => {
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            console.error('Failed to parse JSON response:', text);
-                            throw new Error('Server returned invalid JSON response');
-                        }
-                    });
-                })
-                .then(data => {
-                    if (data.success && data.result_id) {
-                        showMessage('success', translations[currentLang].success);
-
-                        // Set download link
-                        downloadLink.href = `/myapp/backend/pdf/download_zip_pdf.php?id=${data.result_id}`;
-                        resultContainer.classList.remove('hidden');
-
-                        console.log('PDF split successful. Result ID:', data.result_id);
-                    } else {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    console.error('PDF Split Error:', error);
-                    showMessage('error', translations[currentLang].errorSplit + error.message);
-                })
-                .finally(() => {
-                    // Re-enable split button
-                    splitBtn.disabled = false;
+            try {
+                const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
+                    credentials: 'include'
                 });
+                console.log('API key response status:', keyResponse.status);
+                const responseText = await keyResponse.text();
+                let keyData;
+                try {
+                    keyData = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse API key response:', e);
+                    throw new Error('Invalid API key response');
+                }
+                if (!keyData.success) {
+                    throw new Error('Failed to get API key: ' + (keyData.error || 'Unknown error'));
+                }
+                const apiKey = keyData.api_key;
+                if (!apiKey) {
+                    throw new Error('No API key returned');
+                }
+                fetch('/myapp/backend/api/api_split_pdf.php', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': apiKey
+                    },
+                    body: formData,
+                    credentials: 'include'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('Server error response:', text);
+                                throw new Error(`Server error: ${response.status}`);
+                            });
+                        }
+
+                        return response.text().then(text => {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                console.error('Failed to parse JSON response:', text);
+                                throw new Error('Server returned invalid JSON response');
+                            }
+                        });
+                    })
+                    .then(data => {
+                        if (data.success && data.result_id) {
+                            showMessage('success', translations[currentLang].success);
+
+                            // Set download link
+                            downloadLink.href = `/myapp/backend/pdf/download_zip_pdf.php?id=${data.result_id}`;
+                            resultContainer.classList.remove('hidden');
+
+                            console.log('PDF split successful. Result ID:', data.result_id);
+                        } else {
+                            throw new Error(data.error || 'Unknown error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('PDF Split Error:', error);
+                        showMessage('error', translations[currentLang].errorSplit + error.message);
+                    })
+            } catch (error) {
+                console.error('PDF Split Error:', error);
+                showMessage('error', translations[currentLang].errorMerge + error.message);
+            } finally {
+                splitBtn.disabled = false;
+            }
         }
 
         // Show a message to the user

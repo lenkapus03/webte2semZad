@@ -176,7 +176,7 @@
 </head>
 <body>
 <div class="navigation">
-    <a href="/myapp/index.php">← Back to Dashboard</a>
+    <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -257,7 +257,8 @@
                 'opacity': 'Opacity',
                 'color': 'Color',
                 'fontSize': 'Font Size',
-                'rotation': 'Rotation Angle'
+                'rotation': 'Rotation Angle',
+                'back': '← Back to Dashboard'
             },
             'sk': {
                 'title': 'Pridať vodoznak do PDF',
@@ -277,7 +278,8 @@
                 'opacity': 'Priehľadnosť',
                 'color': 'Farba',
                 'fontSize': 'Veľkosť písma',
-                'rotation': 'Uhol otočenia'
+                'rotation': 'Uhol otočenia',
+                'back': '← Späť na prehľad'
             }
         };
 
@@ -307,6 +309,7 @@
         const colorPreview = document.getElementById('colorPreview');
         const watermarkRotation = document.getElementById('watermarkRotation');
         const rotationValue = document.getElementById('rotationValue');
+        const back = document.getElementById('back');
 
         // Selected file
         let selectedFile = null;
@@ -344,6 +347,7 @@
             selectFileBtn.textContent = translations[lang].selectFile;
             watermarkBtn.textContent = translations[lang].watermarkBtn;
             downloadLink.textContent = translations[lang].downloadLink;
+            back.textContent = translations[lang].back;
 
             // Update watermark settings labels
             document.querySelector('.watermark-options h3').textContent = translations[lang].watermarkSettings;
@@ -468,7 +472,7 @@
         // Watermark button click event
         watermarkBtn.addEventListener('click', addWatermark);
 
-        function addWatermark() {
+        async function addWatermark() {
             if (!selectedFile) {
                 showMessage('error', translations[currentLang].errorNoFile);
                 return;
@@ -501,50 +505,75 @@
             // Log for debugging
             console.log('Sending request to add watermark to PDF...');
 
-            // Send request to the server
-            fetch('/myapp/backend/pdf/watermark_pdf.php', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            console.error('Server error response:', text);
-                            throw new Error(`Server error: ${response.status}`);
-                        });
-                    }
-
-                    return response.text().then(text => {
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            console.error('Failed to parse JSON response:', text);
-                            throw new Error('Server returned invalid JSON response');
-                        }
-                    });
-                })
-                .then(data => {
-                    if (data.success && data.result_id) {
-                        showMessage('success', translations[currentLang].success);
-
-                        // Set download link to the direct PDF download endpoint
-                        downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                        resultContainer.classList.remove('hidden');
-
-                        console.log('Watermark added successfully. Result ID:', data.result_id);
-                    } else {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Watermark Error:', error);
-                    showMessage('error', translations[currentLang].errorWatermark + error.message);
-                })
-                .finally(() => {
-                    // Re-enable watermark button
-                    watermarkBtn.disabled = false;
+            try {
+                const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
+                    credentials: 'include'
                 });
+                const responseText = await keyResponse.text();
+                let keyData;
+                try {
+                    keyData = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse API key response:', e);
+                    throw new Error('Invalid API key response');
+                }
+                if (!keyData.success) {
+                    throw new Error('Failed to get API key: ' + (keyData.error || 'Unknown error'));
+                }
+                const apiKey = keyData.api_key;
+                if (!apiKey) {
+                    throw new Error('No API key returned');
+                }
+
+                // Send request to the server
+                fetch('/myapp/backend/api/api_watermark_pdf.php', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': apiKey
+                    },
+                    body: formData,
+                    credentials: 'include'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('Server error response:', text);
+                                throw new Error(`Server error: ${response.status}`);
+                            });
+                        }
+
+                        return response.text().then(text => {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                console.error('Failed to parse JSON response:', text);
+                                throw new Error('Server returned invalid JSON response');
+                            }
+                        });
+                    })
+                    .then(data => {
+                        if (data.success && data.result_id) {
+                            showMessage('success', translations[currentLang].success);
+
+                            // Set download link to the direct PDF download endpoint
+                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
+                            resultContainer.classList.remove('hidden');
+
+                            console.log('Watermark added successfully. Result ID:', data.result_id);
+                        } else {
+                            throw new Error(data.error || 'Unknown error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Watermark Error:', error);
+                        showMessage('error', translations[currentLang].errorWatermark + error.message);
+                    })
+            } catch (error) {
+                console.error('PDF Processing Error:', error);
+                showMessage('error', translations[currentLang].errorMerge + error.message);
+            } finally {
+                watermarkBtn.disabled = false;
+            }
         }
 
         // Show a message to the user

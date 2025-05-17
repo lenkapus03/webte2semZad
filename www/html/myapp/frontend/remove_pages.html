@@ -304,7 +304,7 @@
 </head>
 <body>
 <div class="navigation">
-    <a href="/myapp/index.php">← Back to Dashboard</a>
+    <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -377,7 +377,8 @@
                 'of': 'of',
                 'pagesSelected': 'pages selected for removal out of',
                 'totalPages': 'total pages',
-                'noSelection': 'No pages selected for removal. Please select at least one page to remove.'
+                'noSelection': 'No pages selected for removal. Please select at least one page to remove.',
+                'back': '← Back to Dashboard'
             },
             'sk': {
                 'title': 'Odstránenie PDF stránok',
@@ -399,7 +400,8 @@
                 'of': 'z',
                 'pagesSelected': 'stránok vybraných na odstránenie z',
                 'totalPages': 'všetkých stránok',
-                'noSelection': 'Žiadne stránky neboli vybrané na odstránenie. Vyberte aspoň jednu stránku na odstránenie.'
+                'noSelection': 'Žiadne stránky neboli vybrané na odstránenie. Vyberte aspoň jednu stránku na odstránenie.',
+                'back': '← Späť na prehľad'
             }
         };
 
@@ -429,6 +431,7 @@
         const summaryBox = document.getElementById('summaryBox');
         const selectedCount = document.getElementById('selectedCount');
         const totalCount = document.getElementById('totalCount');
+        const back = document.getElementById('back');
 
         // PDF viewer variables
         let pdfDoc = null;
@@ -460,6 +463,7 @@
             deselectAllBtn.textContent = translations[lang].deselectAllBtn;
             applyBtn.textContent = translations[lang].applyBtn;
             downloadLink.textContent = translations[lang].downloadLink;
+            back.textContent = translations[lang].back;
 
             // Update page indicator
             updatePageIndicator();
@@ -909,7 +913,7 @@
         });
 
         // Process removal of pages
-        function processRemoval() {
+        async function processRemoval() {
             showMessage('info', translations[currentLang].processing);
             applyBtn.disabled = true;
 
@@ -918,42 +922,68 @@
             formData.append('file', selectedFile);
             formData.append('pages_to_remove', JSON.stringify(pagesToRemove));
 
-            // Send to server
-            fetch('/myapp/backend/pdf/remove_pages.php', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            console.error('Server error response:', text);
-                            throw new Error(`Server error: ${response.status}`);
-                        });
-                    }
-
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.result_id) {
-                        showMessage('success', translations[currentLang].success);
-
-                        // Set download link
-                        downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                        resultContainer.classList.remove('hidden');
-
-                        console.log('PDF pages removal successful. Result ID:', data.result_id);
-                    } else {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    console.error('PDF Processing Error:', error);
-                    showMessage('error', translations[currentLang].errorProcess + error.message);
-                })
-                .finally(() => {
-                    applyBtn.disabled = false;
+            try {
+                const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
+                    credentials: 'include'
                 });
+                const responseText = await keyResponse.text();
+                let keyData;
+                try {
+                    keyData = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse API key response:', e);
+                    throw new Error('Invalid API key response');
+                }
+                if (!keyData.success) {
+                    throw new Error('Failed to get API key: ' + (keyData.error || 'Unknown error'));
+                }
+                const apiKey = keyData.api_key;
+                if (!apiKey) {
+                    throw new Error('No API key returned');
+                }
+
+                // Send to server
+                fetch('/myapp/backend/api/api_remove_pages.php', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': apiKey
+                    },
+                    body: formData,
+                    credentials: 'include'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('Server error response:', text);
+                                throw new Error(`Server error: ${response.status}`);
+                            });
+                        }
+
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success && data.result_id) {
+                            showMessage('success', translations[currentLang].success);
+
+                            // Set download link
+                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
+                            resultContainer.classList.remove('hidden');
+
+                            console.log('PDF pages removal successful. Result ID:', data.result_id);
+                        } else {
+                            throw new Error(data.error || 'Unknown error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('PDF Processing Error:', error);
+                        showMessage('error', translations[currentLang].errorProcess + error.message);
+                    })
+            } catch (error) {
+                console.error('PDF Processing Error:', error);
+                showMessage('error', translations[currentLang].errorMerge + error.message);
+            } finally {
+                applyBtn.disabled = false;
+            }
         }
 
         // Show a message to the user
