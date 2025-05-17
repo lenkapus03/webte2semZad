@@ -748,8 +748,52 @@
                 if (data.success) {
                     showMessage('success', translations[currentLang].success);
                     currentComparisonData = data;
-                    displayResults(data);
+
+                    const downloadLink = document.createElement('a');
+                    downloadLink.className = 'btn download-btn';
+                    downloadLink.textContent = translations[currentLang].downloadReport;
+                    downloadLink.download = 'pdf_comparison_report.pdf';
+                    downloadLink.target = '_blank';
+
+                    // Construct the download URL for the fetch request
+                    const downloadUrl = `/myapp/backend/api/api_download_comparison.php?id=${data.result_id}`;
+
+                    downloadLink.addEventListener('click', async (event) => {
+                        event.preventDefault(); // Prevent the default link behavior
+
+                        try {
+                            const downloadResponse = await fetch(downloadUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'X-API-KEY': apiKey // Include API key in the header
+                                }
+                            });
+
+                            if (downloadResponse.ok) {
+                                const blob = await downloadResponse.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = 'pdf_comparison_report.pdf';
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                window.URL.revokeObjectURL(url);
+                            } else {
+                                const errorData = await downloadResponse.json();
+                                showMessage('error', translations[currentLang].errorDownload + (errorData.error || 'Unknown error'));
+                                console.error('Download failed:', errorData);
+                            }
+                        } catch (error) {
+                            showMessage('error', translations[currentLang].errorDownload + error.message);
+                            console.error('Download error:', error);
+                        }
+                    });
+
+                    comparisonResults.innerHTML = '';
+                    comparisonResults.appendChild(downloadLink);
                     resultContainer.classList.remove('hidden');
+
                 } else {
                     throw new Error(data.error || 'Unknown error');
                 }
@@ -760,7 +804,8 @@
             }
         }
 
-        // Display comparison results
+
+            // Display comparison results
         function displayResults(data) {
             comparisonResults.innerHTML = '';
 
@@ -772,7 +817,8 @@
                 downloadBtn.className = 'btn download-btn';
                 downloadBtn.href = data.download_url;
                 downloadBtn.textContent = translations[currentLang].downloadReport;
-                downloadBtn.download = 'pdf_comparison_report.pdf'; // Suggest a filename
+                downloadBtn.download = 'pdf_comparison_report.pdf';
+                downloadBtn.target = '_blank'; // Open in new tab
 
                 downloadContainer.appendChild(downloadBtn);
                 comparisonResults.appendChild(downloadContainer);
