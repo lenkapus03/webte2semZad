@@ -406,14 +406,14 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </div>
         </div>
 
-        <!-- Placeholder for future tools -->
-        <div class="tool-card" style="opacity: 0.6;">
-            <h3><i class="fas fa-compress-alt"></i> Compress PDF</h3>
-            <p>Reduce file size while maintaining quality (Coming soon).</p>
+        <div class="tool-card">
+            <h3><i class="fas fa-balance-scale"></i> Compare PDFs</h3>
+            <p>Compare two PDF files to identify differences in content, metadata, and page count.</p>
             <div class="btn-div">
-                <button class="btn" disabled><i class="fas fa-clock"></i> Coming Soon</button>
+                <a href="/myapp/frontend/compare_pdfs.html" class="btn"><i class="fas fa-not-equal"></i> Use Tool</a>
             </div>
         </div>
+
 
     </div>
 </div>
