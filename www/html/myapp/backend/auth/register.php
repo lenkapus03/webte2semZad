@@ -2,33 +2,54 @@
 header('Content-Type: application/json');
 session_start();
 
-
 require_once "api_key.php";
 
-$response = ['success' => false, 'error' => "test", 'api_key' => null, 'user' => null];
+$response = ['success' => false, 'error' => null, 'api_key' => null, 'user' => null];
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Invalid request method', 405);
     }
 
-    $username = $_POST['username'] ?? '';
-    $passwordPlain = $_POST['password'] ?? '';
-    $role = $_POST['role'] ?? '';
+    // Get form data directly from $_POST
+    $username = trim($_POST['username'] ?? '');
+    $passwordPlain = trim($_POST['password'] ?? '');
+    $role = trim($_POST['role'] ?? '');
 
+    // Basic validation
+    if (empty($username)) {
+        throw new Exception('Username is required', 400);
+    }
+    if (empty($passwordPlain)) {
+        throw new Exception('Password is required', 400);
+    }
+    if (empty($role)) {
+        throw new Exception('Role is required', 400);
+    }
+
+    // Additional validation
     $validation = validateUsernamePassword($username, $passwordPlain);
     if (!$validation['valid']) {
-        throw new Exception(implode("\n", $validation['errors']), 400);
+        $response['error'] = $validation['errors'];
+        throw new Exception('Validation failed', 400);
     }
 
     $roleCheck = validateRole($role);
     if (!$roleCheck['valid']) {
         throw new Exception($roleCheck['error'], 400);
     }
-    $pdo = getPDO();
 
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->execute([$username]);
+    $pdo = getPDO();
+    if (!$pdo) {
+        throw new Exception('Database connection failed', 500);
+    }
+
+    // Check if username exists
+    $stmt = $pdo->prepare("SELECT username FROM users WHERE username = ?");
+    if (!$stmt->execute([$username])) {
+        throw new Exception('Database query failed', 500);
+    }
+
     if ($stmt->fetch()) {
         throw new Exception('Username already taken', 409);
     }
@@ -36,15 +57,17 @@ try {
     $hashedPassword = password_hash($passwordPlain, PASSWORD_DEFAULT);
     $api_key = generateApiKey();
 
+    // Insert new user
     $stmt = $pdo->prepare(
         "INSERT INTO users (username, password, role, api_key)
         VALUES (?, ?, ?, ?)"
     );
-    $stmt->execute([$username, $hashedPassword, $role, $api_key]);
 
-    $userId = $pdo->lastInsertId();
+    if (!$stmt->execute([$username, $hashedPassword, $role, $api_key])) {
+        throw new Exception('User registration failed', 500);
+    }
 
-    $_SESSION['user_id'] = $userId;
+    // Set session variables without user_id
     $_SESSION['username'] = $username;
     $_SESSION['role'] = $role;
     $_SESSION['api_key'] = $api_key;
@@ -55,24 +78,19 @@ try {
         'success' => true,
         'api_key' => $api_key,
         'user' => [
-            'id' => 'user_id',
             'username' => $username
         ]
     ];
 
 } catch (PDOException $e) {
     http_response_code(500);
-    $response = ['error' => 'Registration failed'];
+    $response['error'] = 'Registration failed due to database error';
     error_log("Registration PDO error: " . $e->getMessage());
 } catch (Exception $e) {
-    http_response_code($e->getCode() >= 400 ? $e->getCode() : 400);
-    $response = ['error' => $e->getMessage()];
-    if ($e->getCode() >= 500) {
-        error_log("Registration error: " . $e->getMessage());
-    }
+    $code = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 400;
+    http_response_code($code);
+    $response['error'] = (array)($response['error'] ?? $e->getMessage());
 }
 
-die (json_encode($response));
-
-
-
+echo json_encode($response);
+exit;

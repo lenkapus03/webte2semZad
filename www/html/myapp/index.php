@@ -1,7 +1,6 @@
 <?php
 session_start();
 if (!isset($_SESSION['username'])) {
-    // Use an absolute path starting with / to ensure proper redirection
     header("Location: /myapp/auth/login.php");
     exit;
 }
@@ -326,7 +325,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
     <div class="admin-section">
         <h3><i class="fas fa-user-shield"></i> <?= $t['admin_panel'] ?></h3>
         <p><?= $t['admin_panel_desc'] ?></p>
-        <a href="/myapp/users_history.html" class="btn btn-warning"><i class="fas fa-history"> </i> <?= $t['viewuserhistory'] ?></a>
+        <a href="/myapp/users_history.php" class="btn btn-warning"><i class="fas fa-history"> </i> <?= $t['viewuserhistory'] ?></a>
     </div>
 <?php endif; ?>
 
@@ -338,7 +337,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-object-group"></i> <?= $t['merge'] ?></h3>
             <p><?= $t['merge_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/merge_pdfs.html" class="btn"><i class="fas fa-link"> </i><?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/merge_pdfs.php" class="btn"><i class="fas fa-link"> </i><?= $t['use_tool'] ?></a>
             </div>
         </div>
 
@@ -346,7 +345,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-file-alt"></i> <?= $t['split'] ?></h3>
             <p><?= $t['split_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/split_pdf.html" class="btn"><i class="fas fa-cut"></i> <?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/split_pdf.php" class="btn"><i class="fas fa-cut"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
@@ -355,7 +354,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-sync-alt"></i> <?= $t['rotate'] ?></h3>
             <p><?= $t['rotate_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/rotate_pdf.html" class="btn"><i class="fas fa-redo"></i> <?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/rotate_pdf.php" class="btn"><i class="fas fa-redo"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
@@ -363,7 +362,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-trash-alt"></i> <?= $t['remove'] ?></h3>
             <p><?= $t['remove_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/remove_pages.html" class="btn"><i class="fas fa-minus-circle"></i> <?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/remove_pages.php" class="btn"><i class="fas fa-minus-circle"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
@@ -371,7 +370,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-sort-amount-down"></i> <?= $t['reorder'] ?></h3>
             <p><?= $t['reorder_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/reorder_pages.html" class="btn"><i class="fas fa-exchange-alt"></i> <?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/reorder_pages.php" class="btn"><i class="fas fa-exchange-alt"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
@@ -379,7 +378,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-lock"></i> <?= $t['encrypt'] ?></h3>
             <p><?= $t['encrypt_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/encrypt_pdf.html" class="btn"><i class="fas fa-key"></i> <?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/encrypt_pdf.php" class="btn"><i class="fas fa-key"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
@@ -387,14 +386,14 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-file-export"></i> <?= $t['extract'] ?></h3>
             <p><?= $t['extract_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/extract_pages.html" class="btn"><i class="fas fa-file-export"></i> <?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/extract_pages.php" class="btn"><i class="fas fa-file-export"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
         <div class="tool-card">
             <h3><i class="fas fa-unlock"></i> <?= $t['unlock'] ?></h3>
             <p><?= $t['unlock_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/decrypt_pdf.html" class="btn"><i class="fas fa-unlock-alt"></i> <?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/decrypt_pdf.php" class="btn"><i class="fas fa-unlock-alt"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
@@ -402,15 +401,15 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-stamp"></i> <?= $t['watermark'] ?></h3>
             <p><?= $t['watermark_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/watermark_pdf.html" class="btn"><i class="fas fa-water"></i> <?= $t['use_tool'] ?></a>
+                <a href="/myapp/frontend/watermark_pdf.php" class="btn"><i class="fas fa-water"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
         <div class="tool-card">
-            <h3><i class="fas fa-balance-scale"></i> Compare PDFs</h3>
-            <p>Compare two PDF files to identify differences in content, metadata, and page count.</p>
+            <h3><i class="fas fa-balance-scale"></i> <?= $t['compare'] ?></h3>
+            <p><?= $t['compare_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/compare_pdfs.html" class="btn"><i class="fas fa-not-equal"></i> Use Tool</a>
+                <a href="/myapp/frontend/compare_pdfs.php" class="btn"><i class="fas fa-not-equal"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
@@ -422,7 +421,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
     <a href="dynamicManual.php" class="btn btn-secondary">
         <i class="fas fa-book"></i> <?= $t['manual'] ?>
     </a>
-    <a href="/myapp/frontend/api-docs.html" class="btn btn-secondary">
+    <a href="/myapp/frontend/api-docs.php" class="btn btn-secondary">
         <i class="fas fa-book"></i> <?= $t['OpenAPI'] ?>
     </a>
 </div>
@@ -431,6 +430,59 @@ $isAdmin = $_SESSION['role'] === 'admin';
     <p>&copy; <?= date('Y') ?> <?= $t['footer'] ?></p>
 </div>
 
-<script src="index.js" defer></script>
+<script>
+    document.getElementById('regenApiKey').addEventListener('click', async () => {
+        const msg = document.getElementById('message');
+        const apiKeyDisplay = document.getElementById('apiKeyDisplay');
+
+        if (!msg || !apiKeyDisplay) {
+            console.error("Required elements not found");
+            return;
+        }
+
+        msg.textContent = 'Regenerating API key...';
+        msg.style.color = 'orange';
+        apiKeyDisplay.style.display = 'none';
+
+        try {
+            const response = await fetch('/myapp/backend/regenerate_api_key.php', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            const contentLength = response.headers.get('Content-Length');
+            if (contentLength === '0') {
+                console.error("empty response");
+            }
+
+            let data;
+            const contentType = response.headers.get('Content-Type');
+
+            if (response.ok && contentType?.includes('application/json')) {
+                data = await response.json();
+                if (data?.success && data?.api_key) {
+                    msg.style.color = 'green';
+                    msg.textContent = 'API key successfully regenerated.';
+                    apiKeyDisplay.style.display = 'block';
+                    apiKeyDisplay.textContent = `Your new API key is: ${data.api_key}`;
+                } else {
+                    throw new Error(data?.error || 'Failed to regenerate API key');
+                }
+            } else {
+                const errorText = await response.text();
+                console.error('Server error:', errorText);
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            msg.style.color = 'red';
+            msg.textContent = error.message || 'Error communicating with server.';
+            apiKeyDisplay.style.display = 'none';
+        }
+    });
+
+</script>
 </body>
 </html>

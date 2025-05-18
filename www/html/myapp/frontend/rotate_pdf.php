@@ -1,9 +1,16 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: /myapp/auth/login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reorder PDF Pages</title>
+    <title>Rotate PDF Pages</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -132,8 +139,38 @@
             margin-bottom: 20px;
             padding: 10px 0;
             border-bottom: 1px solid #eee;
-            background-color: white;
-            z-index: 100;
+        }
+        .pagination {
+            display: flex;
+            align-items: center;
+        }
+        .pagination button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pagination-text {
+            margin: 0 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .rotate-all-btn {
+            background-color: #2196F3;
+        }
+        .apply-btn {
+            background-color: #4CAF50;
         }
 
         /* PDF Viewer styles */
@@ -153,17 +190,15 @@
             align-items: center;
             position: relative;
             min-height: 300px;
-            cursor: move;
-            transition: all 0.2s ease-in-out;
         }
-        .page-container.dragging {
-            opacity: 0.7;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            z-index: 1000;
-            transform: scale(1.05);
+        .page-container.rotated-90 .page-content {
+            transform: rotate(90deg);
         }
-        .page-container.drag-over {
-            border: 2px dashed #2196F3;
+        .page-container.rotated-180 .page-content {
+            transform: rotate(180deg);
+        }
+        .page-container.rotated-270 .page-content {
+            transform: rotate(270deg);
         }
         .page-content {
             width: 100%;
@@ -172,6 +207,7 @@
             justify-content: center;
             align-items: center;
             position: relative;
+            transition: transform 0.3s ease;
         }
         .page-preview {
             max-width: 100%;
@@ -179,47 +215,48 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             background-color: white;
         }
-        .page-number {
-            font-weight: bold;
-            margin: 15px 0;
-            font-size: 16px;
-            position: relative;
-        }
-        .original-page-number {
-            position: absolute;
-            top: -20px;
-            right: -10px;
-            background-color: #ffc107;
-            color: #333;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-        }
-        .reordering-indicator {
+        .rotation-badge {
             position: absolute;
             top: 10px;
             right: 10px;
-            background-color: #2196F3;
+            background-color: rgba(0,0,0,0.7);
             color: white;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
             font-size: 14px;
+            z-index: 10;
         }
-        .summary-box {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .page-number {
+            font-weight: bold;
+            margin: 15px 0;
+            font-size: 16px;
+        }
+        .page-tools {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .rotate-btn {
+            background-color: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .rotate-btn:hover {
+            background-color: #F57C00;
         }
         @media (max-width: 900px) {
             .pdf-viewer {
@@ -246,7 +283,7 @@
     <a href="#" id="lang-en">English</a> | <a href="#" id="lang-sk">Slovensky</a>
 </div>
 
-<h1 id="title">Reorder PDF Pages</h1>
+<h1 id="title">Rotate PDF Pages</h1>
 
 <div class="dropzone" id="dropzone">
     <p id="dropText">Drag and drop a PDF file here, or click to select file</p>
@@ -258,14 +295,15 @@
 
 <div id="viewerContainer" class="hidden">
     <div class="controls-container">
-        <div class="action-buttons">
-            <button class="btn btn-secondary" id="resetOrderBtn">Reset Order</button>
-            <button class="btn" id="applyBtn">Apply Page Reordering</button>
+        <div class="pagination">
+            <button id="prevPage">←</button>
+            <span class="pagination-text" id="pageIndicator">Page 1-3 of 3</span>
+            <button id="nextPage">→</button>
         </div>
-    </div>
-
-    <div id="summaryBox" class="summary-box hidden">
-        <span id="reorderInfo">Drag and drop pages to reorder them. </span><span style="background-color: #ffc107; padding: 2px 5px; border-radius: 3px; font-weight: bold;">The original page number is shown in yellow.</span>
+        <div class="action-buttons">
+            <button class="btn rotate-all-btn" id="rotateAllBtn">Rotate All 90° CW</button>
+            <button class="btn apply-btn" id="applyBtn">Apply Changes</button>
+        </div>
     </div>
 
     <div id="pdfViewer" class="pdf-viewer">
@@ -275,7 +313,7 @@
 
 <div id="messageContainer" class="hidden"></div>
 <div id="resultContainer" class="hidden">
-    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Reorded PDF</a>
+    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Rotated PDF</a>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -287,43 +325,38 @@
         // Translation object
         const translations = {
             'en': {
-                'title': 'Reorder PDF Pages',
+                'title': 'Rotate PDF Pages',
                 'dropText': 'Drag and drop a PDF file here, or click to select file',
                 'selectFile': 'Select File',
-                'resetOrderBtn': 'Reset Order',
-                'applyBtn': 'Apply Page Reordering',
-                'downloadLink': 'Download Modified PDF',
-                'processing': 'Processing PDF...',
-                'success': 'PDF pages were successfully reordered!',
-                'errorNoFile': 'Please select a PDF file.',
+                'rotateAllBtn': 'Rotate All 90° CW',
+                'applyBtn': 'Apply Changes',
+                'downloadLink': 'Download Rotated PDF',
+                'rotating': 'Rotating PDF pages...',
+                'success': 'PDF pages were successfully rotated!',
+                'errorNoFile': 'Please select a PDF file to rotate.',
                 'errorUpload': 'Error uploading file: ',
-                'errorProcess': 'Error processing PDF file: ',
+                'errorRotate': 'Error rotating PDF file: ',
                 'remove': 'Remove',
                 'page': 'Page',
                 'of': 'of',
-                'reorderInfo': 'Drag and drop pages to reorder them. The original page number is shown in yellow.',
-                'originalPage': 'Original:',
-                'noChange': 'The page order has not changed. Make some changes first.',
                 'back': '← Back to Dashboard'
+
             },
             'sk': {
-                'title': 'Preusporiadanie PDF stránok',
+                'title': 'Rotácia PDF stránok',
                 'dropText': 'Pretiahnite PDF súbor sem, alebo kliknite pre výber súboru',
                 'selectFile': 'Vybrať súbor',
-                'resetOrderBtn': 'Obnoviť poradie',
-                'applyBtn': 'Použiť preusporiadanie',
-                'downloadLink': 'Stiahnuť upravený PDF',
-                'processing': 'Spracovávam PDF...',
-                'success': 'PDF stránky boli úspešne preusporiadané!',
-                'errorNoFile': 'Vyberte PDF súbor.',
+                'rotateAllBtn': 'Otočiť všetky o 90° v smere HR',
+                'applyBtn': 'Aplikovať zmeny',
+                'downloadLink': 'Stiahnuť rotované PDF',
+                'rotating': 'Rotácia PDF stránok...',
+                'success': 'PDF stránky boli úspešne rotované!',
+                'errorNoFile': 'Vyberte PDF súbor na rotáciu.',
                 'errorUpload': 'Chyba pri nahrávaní súboru: ',
-                'errorProcess': 'Chyba pri spracovaní PDF súboru: ',
+                'errorRotate': 'Chyba pri rotácii PDF súboru: ',
                 'remove': 'Odstrániť',
                 'page': 'Strana',
                 'of': 'z',
-                'reorderInfo': 'Presuňte stránky pretiahnutím myšou. Pôvodné číslo strany je zobrazené žltou.',
-                'originalPage': 'Pôvodná:',
-                'noChange': 'Poradie strán sa nezmenilo. Najprv vykonajte nejaké zmeny.',
                 'back': '← Späť na prehľad'
             }
         };
@@ -338,8 +371,11 @@
         const fileList = document.getElementById('fileList');
         const viewerContainer = document.getElementById('viewerContainer');
         const pdfViewer = document.getElementById('pdfViewer');
-        const resetOrderBtn = document.getElementById('resetOrderBtn');
+        const rotateAllBtn = document.getElementById('rotateAllBtn');
         const applyBtn = document.getElementById('applyBtn');
+        const prevPage = document.getElementById('prevPage');
+        const nextPage = document.getElementById('nextPage');
+        const pageIndicator = document.getElementById('pageIndicator');
         const messageContainer = document.getElementById('messageContainer');
         const resultContainer = document.getElementById('resultContainer');
         const downloadLink = document.getElementById('downloadLink');
@@ -347,20 +383,16 @@
         const dropText = document.getElementById('dropText');
         const langEn = document.getElementById('lang-en');
         const langSk = document.getElementById('lang-sk');
-        const summaryBox = document.getElementById('summaryBox');
-        const reorderInfo = document.getElementById('reorderInfo');
         const back = document.getElementById('back');
 
         // PDF viewer variables
         let pdfDoc = null;
-        let pageOrder = []; // Array to track current page order [1, 2, 3, 4, ...]
-        let originalPageOrder = []; // Array to track original page order for reference
+        let currentPage = 1;
+        let pagesPerView = 3;
+        let pageRotations = [];
 
         // Selected file
         let selectedFile = null;
-
-        // Element being dragged
-        let draggedElement = null;
 
         // Language switcher event listeners
         langEn.addEventListener('click', function(e) {
@@ -379,11 +411,13 @@
             title.textContent = translations[lang].title;
             dropText.textContent = translations[lang].dropText;
             selectFileBtn.textContent = translations[lang].selectFile;
-            resetOrderBtn.textContent = translations[lang].resetOrderBtn;
+            rotateAllBtn.textContent = translations[lang].rotateAllBtn;
             applyBtn.textContent = translations[lang].applyBtn;
             downloadLink.textContent = translations[lang].downloadLink;
-            reorderInfo.textContent = translations[lang].reorderInfo;
             back.textContent = translations[lang].back;
+
+            // Update page indicator
+            updatePageIndicator();
 
             // Update remove buttons
             document.querySelectorAll('.remove-btn').forEach(btn => {
@@ -392,15 +426,16 @@
 
             // Update page numbers
             document.querySelectorAll('.page-number').forEach((el, index) => {
-                const pageNum = pageOrder[index];
-                el.textContent = `${translations[lang].page} ${index + 1}`;
-
-                // Update tooltips for original page numbers
-                const badge = el.querySelector('.original-page-number');
-                if (badge) {
-                    badge.title = `${translations[lang].originalPage} ${pageNum}`;
-                }
+                el.textContent = `${translations[lang].page} ${index + currentPage}`;
             });
+        }
+
+        // Update page indicator text
+        function updatePageIndicator() {
+            if (pdfDoc) {
+                const lastPage = Math.min(currentPage + pagesPerView - 1, pdfDoc.numPages);
+                pageIndicator.textContent = `${translations[currentLang].page} ${currentPage}-${lastPage} ${translations[currentLang].of} ${pdfDoc.numPages}`;
+            }
         }
 
         // Drag and drop events
@@ -454,8 +489,6 @@
             // Clear previous file
             selectedFile = file;
             fileList.innerHTML = '';
-            pageOrder = [];
-            originalPageOrder = [];
 
             // Add file to the list
             addFileToList(file);
@@ -497,16 +530,25 @@
                 fileList.removeChild(li);
                 // Hide viewer
                 viewerContainer.classList.add('hidden');
-                summaryBox.classList.add('hidden');
                 // Reset PDF viewer
                 pdfDoc = null;
                 pdfViewer.innerHTML = '';
-                pageOrder = [];
-                originalPageOrder = [];
+                pageRotations = [];
             });
 
             li.appendChild(removeBtn);
             fileList.appendChild(li);
+
+            // Add file details
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+            const details = document.createElement('div');
+            details.className = 'file-details';
+            details.style.color = '#666';
+            details.style.fontSize = '0.9em';
+            details.style.marginTop = '5px';
+            details.innerHTML = `Size: ${sizeMB} MB`;
+            fileItem.appendChild(details);
         }
 
         // Load PDF file and render previews
@@ -518,16 +560,18 @@
                 pdfDoc = await loadingTask.promise;
                 console.log(`PDF loaded with ${pdfDoc.numPages} pages`);
 
-                // Init page order array (1-based, like PDF page numbers)
-                pageOrder = Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
-                originalPageOrder = [...pageOrder]; // Clone for reset functionality
+                // Initialize page rotations array
+                pageRotations = new Array(pdfDoc.numPages).fill(0);
 
                 // Show the PDF viewer
                 viewerContainer.classList.remove('hidden');
-                summaryBox.classList.remove('hidden');
 
-                // Render all pages
+                // Render the first set of pages
+                currentPage = 1;
                 renderPages();
+
+                // Update page indicator
+                updatePageIndicator();
 
             } catch (error) {
                 console.error('Error loading PDF:', error);
@@ -535,42 +579,36 @@
             }
         }
 
-        // Render all pages
+        // Render a set of pages
         async function renderPages() {
             // Clear current previews
             pdfViewer.innerHTML = '';
 
-            // Set grid layout based on number of pages
-            let columns = 3; // Default
-            if (pdfDoc.numPages > 12) {
-                columns = 4;
-            } else if (pdfDoc.numPages > 24) {
-                columns = 5;
-            }
-            pdfViewer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            const startPage = currentPage;
+            const endPage = Math.min(startPage + pagesPerView - 1, pdfDoc.numPages);
 
-            for (let i = 0; i < pageOrder.length; i++) {
-                const pageNum = pageOrder[i]; // Get the actual page number from the order array
-
+            for (let i = startPage; i <= endPage; i++) {
                 try {
+                    const page = await pdfDoc.getPage(i);
                     const pageContainer = document.createElement('div');
                     pageContainer.className = 'page-container';
-                    pageContainer.dataset.pageNum = pageNum;
-                    pageContainer.dataset.orderIndex = i;
-                    pageContainer.draggable = true;
 
-                    // Add drag and drop event listeners
-                    pageContainer.addEventListener('dragstart', handleDragStart);
-                    pageContainer.addEventListener('dragend', handleDragEnd);
-                    pageContainer.addEventListener('dragover', handleDragOver);
-                    pageContainer.addEventListener('dragleave', handleDragLeave);
-                    pageContainer.addEventListener('drop', handleDrop);
+                    if (pageRotations[i-1] !== 0) {
+                        pageContainer.classList.add(`rotated-${pageRotations[i-1]}`);
+                    }
 
                     // Create page content container
                     const pageContent = document.createElement('div');
                     pageContent.className = 'page-content';
 
-                    const page = await pdfDoc.getPage(pageNum);
+                    // Create rotation badge if page is rotated
+                    if (pageRotations[i-1] !== 0) {
+                        const rotationBadge = document.createElement('div');
+                        rotationBadge.className = 'rotation-badge';
+                        rotationBadge.textContent = `${pageRotations[i-1]}°`;
+                        pageContainer.appendChild(rotationBadge);
+                    }
+
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
 
@@ -594,129 +632,102 @@
                     // Add page number
                     const pageNumber = document.createElement('div');
                     pageNumber.className = 'page-number';
-                    pageNumber.textContent = `${translations[currentLang].page} ${i + 1}`;
-
-                    // Add original page number badge (if reordered)
-                    if (i + 1 !== pageNum) {
-                        const originalNumBadge = document.createElement('div');
-                        originalNumBadge.className = 'original-page-number';
-                        originalNumBadge.title = `${translations[currentLang].originalPage} ${pageNum}`;
-                        originalNumBadge.textContent = pageNum;
-                        pageNumber.appendChild(originalNumBadge);
-                    }
-
+                    pageNumber.textContent = `${translations[currentLang].page} ${i}`;
                     pageContainer.appendChild(pageNumber);
 
+                    // Add rotation buttons
+                    const pageTools = document.createElement('div');
+                    pageTools.className = 'page-tools';
+
+                    const rotateCCWBtn = document.createElement('button');
+                    rotateCCWBtn.className = 'rotate-btn rotate-ccw';
+                    rotateCCWBtn.innerHTML = '↺';
+                    rotateCCWBtn.title = 'Rotate counterclockwise';
+                    rotateCCWBtn.addEventListener('click', function() {
+                        rotatePage(i, -90); // Rotate counter-clockwise
+                    });
+
+                    const rotateCWBtn = document.createElement('button');
+                    rotateCWBtn.className = 'rotate-btn rotate-cw';
+                    rotateCWBtn.innerHTML = '↻';
+                    rotateCWBtn.title = 'Rotate clockwise';
+                    rotateCWBtn.addEventListener('click', function() {
+                        rotatePage(i, 90); // Rotate clockwise
+                    });
+
+                    pageTools.appendChild(rotateCCWBtn);
+                    pageTools.appendChild(rotateCWBtn);
+
+                    pageContainer.appendChild(pageTools);
                     pdfViewer.appendChild(pageContainer);
 
                 } catch (error) {
-                    console.error(`Error rendering page ${pageNum}:`, error);
+                    console.error(`Error rendering page ${i}:`, error);
                 }
             }
         }
 
-        // Drag and Drop Handlers
-        function handleDragStart(e) {
-            draggedElement = this;
-            this.classList.add('dragging');
+        // Rotate a page
+        function rotatePage(pageNum, angle) {
+            // Update the rotation value for the page
+            pageRotations[pageNum-1] = (pageRotations[pageNum-1] + angle + 360) % 360;
 
-            // Set data for drag operation
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', this.dataset.orderIndex);
-
-            // Use a timeout to change opacity (workaround for drag image)
-            setTimeout(() => {
-                this.style.opacity = '0.4';
-            }, 0);
+            // Re-render the current page set
+            renderPages();
         }
 
-        function handleDragEnd(e) {
-            this.classList.remove('dragging');
-            this.style.opacity = '1';
-
-            // Reset all containers
-            document.querySelectorAll('.page-container').forEach(container => {
-                container.classList.remove('drag-over');
-            });
-        }
-
-        function handleDragOver(e) {
-            if (e.preventDefault) {
-                e.preventDefault(); // Necessary to allow drop
-            }
-
-            e.dataTransfer.dropEffect = 'move';
-            this.classList.add('drag-over');
-
-            return false;
-        }
-
-        function handleDragLeave(e) {
-            this.classList.remove('drag-over');
-        }
-
-        function handleDrop(e) {
-            e.stopPropagation(); // Stops browser from redirecting
-
-            if (draggedElement !== this) {
-                // Get the source and target indices
-                const sourceIndex = parseInt(draggedElement.dataset.orderIndex);
-                const targetIndex = parseInt(this.dataset.orderIndex);
-
-                // Reorder the pages
-                const pageToMove = pageOrder[sourceIndex];
-
-                // Remove the page from its original position
-                pageOrder.splice(sourceIndex, 1);
-
-                // Insert it at the new position
-                pageOrder.splice(targetIndex, 0, pageToMove);
-
-                // Re-render the pages
+        // Pagination handlers
+        prevPage.addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage = Math.max(1, currentPage - pagesPerView);
                 renderPages();
+                updatePageIndicator();
             }
+        });
 
-            this.classList.remove('drag-over');
-            return false;
-        }
+        nextPage.addEventListener('click', function() {
+            if (currentPage + pagesPerView <= pdfDoc.numPages) {
+                currentPage += pagesPerView;
+                renderPages();
+                updatePageIndicator();
+            }
+        });
 
-        // Reset order button handler
-        resetOrderBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            pageOrder = [...originalPageOrder]; // Reset to original order
+        // Rotate all pages
+        rotateAllBtn.addEventListener('click', function() {
+            for (let i = 0; i < pageRotations.length; i++) {
+                pageRotations[i] = (pageRotations[i] + 90) % 360;
+            }
             renderPages();
         });
 
-        // Apply changes button handler
-        applyBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-
+        // Apply changes (save rotated PDF)
+        applyBtn.addEventListener('click', function() {
             if (!selectedFile) {
                 showMessage('error', translations[currentLang].errorNoFile);
                 return;
             }
 
-            // Check if the order has actually changed
-            const hasChanged = !pageOrder.every((page, index) => page === index + 1);
-
-            if (!hasChanged) {
-                showMessage('info', translations[currentLang].noChange);
+            // Check if any rotations were applied
+            const hasRotations = pageRotations.some(rotation => rotation !== 0);
+            if (!hasRotations) {
+                showMessage('info', 'No rotations were applied. Please rotate at least one page.');
                 return;
             }
 
-            // Process the PDF to reorder pages
-            processReordering();
+            // Submit the rotations to the server
+            applyRotations();
         });
 
-        // Process reordering of pages
-        async function processReordering() {
-            showMessage('info', translations[currentLang].processing);
+        // Apply rotations to PDF
+        async function applyRotations() {
+            showMessage('info', translations[currentLang].rotating);
             applyBtn.disabled = true;
 
             // Create FormData
             const formData = new FormData();
             formData.append('file', selectedFile);
-            formData.append('page_order', JSON.stringify(pageOrder));
+            formData.append('rotations', JSON.stringify(pageRotations));
 
             try {
                 const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
@@ -738,8 +749,8 @@
                     throw new Error('No API key returned');
                 }
 
-                // Send to backend
-                fetch('/myapp/backend/api/api_reorder_pages.php', {
+                // Send to server
+                fetch('/myapp/backend/api/api_rotate_pdf.php', {
                     method: 'POST',
                     headers: {
                         'X-API-KEY': apiKey,
@@ -766,14 +777,14 @@
                             downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
                             resultContainer.classList.remove('hidden');
 
-                            console.log('PDF pages reordering successful. Result ID:', data.result_id);
+                            console.log('PDF rotation successful. Result ID:', data.result_id);
                         } else {
                             throw new Error(data.error || 'Unknown error');
                         }
                     })
                     .catch(error => {
-                        console.error('PDF Processing Error:', error);
-                        showMessage('error', translations[currentLang].errorProcess + error.message);
+                        console.error('PDF Rotation Error:', error);
+                        showMessage('error', translations[currentLang].errorRotate + error.message);
                     })
             } catch (error) {
                 console.error('PDF Processing Error:', error);

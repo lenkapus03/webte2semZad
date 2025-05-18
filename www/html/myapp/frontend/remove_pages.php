@@ -1,9 +1,16 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: /myapp/auth/login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rotate PDF Pages</title>
+    <title>Remove PDF Pages</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -132,6 +139,10 @@
             margin-bottom: 20px;
             padding: 10px 0;
             border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 100;
         }
         .pagination {
             display: flex;
@@ -159,11 +170,14 @@
             display: flex;
             gap: 10px;
         }
-        .rotate-all-btn {
+        .select-all-btn {
             background-color: #2196F3;
         }
         .apply-btn {
             background-color: #4CAF50;
+        }
+        .deselect-all-btn {
+            background-color: #607D8B;
         }
 
         /* PDF Viewer styles */
@@ -183,15 +197,22 @@
             align-items: center;
             position: relative;
             min-height: 300px;
+            transition: opacity 0.3s;
         }
-        .page-container.rotated-90 .page-content {
-            transform: rotate(90deg);
+        .page-container.selected-for-remove {
+            opacity: 0.5;
+            border: 1px solid #f44336;
         }
-        .page-container.rotated-180 .page-content {
-            transform: rotate(180deg);
-        }
-        .page-container.rotated-270 .page-content {
-            transform: rotate(270deg);
+        .page-container.selected-for-remove::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(244, 67, 54, 0.2);
+            z-index: 2;
+            pointer-events: none;
         }
         .page-content {
             width: 100%;
@@ -200,7 +221,6 @@
             justify-content: center;
             align-items: center;
             position: relative;
-            transition: transform 0.3s ease;
         }
         .page-preview {
             max-width: 100%;
@@ -208,11 +228,11 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             background-color: white;
         }
-        .rotation-badge {
+        .selection-badge {
             position: absolute;
             top: 10px;
             right: 10px;
-            background-color: rgba(0,0,0,0.7);
+            background-color: #f44336;
             color: white;
             border-radius: 50%;
             width: 36px;
@@ -221,7 +241,7 @@
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 18px;
             z-index: 10;
         }
         .page-number {
@@ -234,22 +254,44 @@
             gap: 10px;
             margin-top: 5px;
         }
-        .rotate-btn {
-            background-color: #FF9800;
+        .remove-page-btn {
+            background-color: #f44336;
             color: white;
             border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            border-radius: 4px;
+            padding: 8px 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 14px;
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .rotate-btn:hover {
-            background-color: #F57C00;
+        .remove-page-btn:hover {
+            background-color: #d32f2f;
+        }
+        .keep-page-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .keep-page-btn:hover {
+            background-color: #388E3C;
+        }
+        .summary-box {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         @media (max-width: 900px) {
             .pdf-viewer {
@@ -276,7 +318,7 @@
     <a href="#" id="lang-en">English</a> | <a href="#" id="lang-sk">Slovensky</a>
 </div>
 
-<h1 id="title">Rotate PDF Pages</h1>
+<h1 id="title">Remove PDF Pages</h1>
 
 <div class="dropzone" id="dropzone">
     <p id="dropText">Drag and drop a PDF file here, or click to select file</p>
@@ -294,9 +336,14 @@
             <button id="nextPage">→</button>
         </div>
         <div class="action-buttons">
-            <button class="btn rotate-all-btn" id="rotateAllBtn">Rotate All 90° CW</button>
-            <button class="btn apply-btn" id="applyBtn">Apply Changes</button>
+            <button class="btn select-all-btn" id="selectAllBtn">Select All Pages</button>
+            <button class="btn deselect-all-btn" id="deselectAllBtn">Deselect All</button>
+            <button class="btn apply-btn" id="applyBtn">Remove Selected Pages</button>
         </div>
+    </div>
+
+    <div id="summaryBox" class="summary-box hidden">
+        <p><strong id="selectedCount">0</strong> pages selected for removal out of <strong id="totalCount">0</strong> total pages.</p>
     </div>
 
     <div id="pdfViewer" class="pdf-viewer">
@@ -306,7 +353,7 @@
 
 <div id="messageContainer" class="hidden"></div>
 <div id="resultContainer" class="hidden">
-    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Rotated PDF</a>
+    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Modified PDF</a>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -318,38 +365,49 @@
         // Translation object
         const translations = {
             'en': {
-                'title': 'Rotate PDF Pages',
+                'title': 'Remove PDF Pages',
                 'dropText': 'Drag and drop a PDF file here, or click to select file',
                 'selectFile': 'Select File',
-                'rotateAllBtn': 'Rotate All 90° CW',
-                'applyBtn': 'Apply Changes',
-                'downloadLink': 'Download Rotated PDF',
-                'rotating': 'Rotating PDF pages...',
-                'success': 'PDF pages were successfully rotated!',
-                'errorNoFile': 'Please select a PDF file to rotate.',
+                'selectAllBtn': 'Select All Pages',
+                'deselectAllBtn': 'Deselect All',
+                'applyBtn': 'Remove Selected Pages',
+                'downloadLink': 'Download Modified PDF',
+                'processing': 'Processing PDF...',
+                'success': 'PDF pages were successfully removed!',
+                'errorNoFile': 'Please select a PDF file.',
                 'errorUpload': 'Error uploading file: ',
-                'errorRotate': 'Error rotating PDF file: ',
+                'errorProcess': 'Error processing PDF file: ',
                 'remove': 'Remove',
+                'removePage': 'Remove Page',
+                'keepPage': 'Keep Page',
                 'page': 'Page',
                 'of': 'of',
+                'pagesSelected': 'pages selected for removal out of',
+                'totalPages': 'total pages',
+                'noSelection': 'No pages selected for removal. Please select at least one page to remove.',
                 'back': '← Back to Dashboard'
-
             },
             'sk': {
-                'title': 'Rotácia PDF stránok',
+                'title': 'Odstránenie PDF stránok',
                 'dropText': 'Pretiahnite PDF súbor sem, alebo kliknite pre výber súboru',
                 'selectFile': 'Vybrať súbor',
-                'rotateAllBtn': 'Otočiť všetky o 90° v smere HR',
-                'applyBtn': 'Aplikovať zmeny',
-                'downloadLink': 'Stiahnuť rotované PDF',
-                'rotating': 'Rotácia PDF stránok...',
-                'success': 'PDF stránky boli úspešne rotované!',
-                'errorNoFile': 'Vyberte PDF súbor na rotáciu.',
+                'selectAllBtn': 'Vybrať všetky stránky',
+                'deselectAllBtn': 'Zrušiť výber',
+                'applyBtn': 'Odstrániť vybrané stránky',
+                'downloadLink': 'Stiahnuť upravený PDF',
+                'processing': 'Spracovávam PDF...',
+                'success': 'PDF stránky boli úspešne odstránené!',
+                'errorNoFile': 'Vyberte PDF súbor.',
                 'errorUpload': 'Chyba pri nahrávaní súboru: ',
-                'errorRotate': 'Chyba pri rotácii PDF súboru: ',
+                'errorProcess': 'Chyba pri spracovaní PDF súboru: ',
                 'remove': 'Odstrániť',
+                'removePage': 'Odstrániť stránku',
+                'keepPage': 'Ponechať stránku',
                 'page': 'Strana',
                 'of': 'z',
+                'pagesSelected': 'stránok vybraných na odstránenie z',
+                'totalPages': 'všetkých stránok',
+                'noSelection': 'Žiadne stránky neboli vybrané na odstránenie. Vyberte aspoň jednu stránku na odstránenie.',
                 'back': '← Späť na prehľad'
             }
         };
@@ -364,7 +422,8 @@
         const fileList = document.getElementById('fileList');
         const viewerContainer = document.getElementById('viewerContainer');
         const pdfViewer = document.getElementById('pdfViewer');
-        const rotateAllBtn = document.getElementById('rotateAllBtn');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
         const applyBtn = document.getElementById('applyBtn');
         const prevPage = document.getElementById('prevPage');
         const nextPage = document.getElementById('nextPage');
@@ -376,13 +435,16 @@
         const dropText = document.getElementById('dropText');
         const langEn = document.getElementById('lang-en');
         const langSk = document.getElementById('lang-sk');
+        const summaryBox = document.getElementById('summaryBox');
+        const selectedCount = document.getElementById('selectedCount');
+        const totalCount = document.getElementById('totalCount');
         const back = document.getElementById('back');
 
         // PDF viewer variables
         let pdfDoc = null;
         let currentPage = 1;
         let pagesPerView = 3;
-        let pageRotations = [];
+        let pagesToRemove = [];
 
         // Selected file
         let selectedFile = null;
@@ -404,7 +466,8 @@
             title.textContent = translations[lang].title;
             dropText.textContent = translations[lang].dropText;
             selectFileBtn.textContent = translations[lang].selectFile;
-            rotateAllBtn.textContent = translations[lang].rotateAllBtn;
+            selectAllBtn.textContent = translations[lang].selectAllBtn;
+            deselectAllBtn.textContent = translations[lang].deselectAllBtn;
             applyBtn.textContent = translations[lang].applyBtn;
             downloadLink.textContent = translations[lang].downloadLink;
             back.textContent = translations[lang].back;
@@ -417,10 +480,21 @@
                 btn.textContent = translations[lang].remove;
             });
 
+            // Update page buttons
+            document.querySelectorAll('.remove-page-btn').forEach(btn => {
+                btn.textContent = translations[lang].removePage;
+            });
+            document.querySelectorAll('.keep-page-btn').forEach(btn => {
+                btn.textContent = translations[lang].keepPage;
+            });
+
             // Update page numbers
             document.querySelectorAll('.page-number').forEach((el, index) => {
                 el.textContent = `${translations[lang].page} ${index + currentPage}`;
             });
+
+            // Update summary box
+            updateSummaryBox();
         }
 
         // Update page indicator text
@@ -428,6 +502,20 @@
             if (pdfDoc) {
                 const lastPage = Math.min(currentPage + pagesPerView - 1, pdfDoc.numPages);
                 pageIndicator.textContent = `${translations[currentLang].page} ${currentPage}-${lastPage} ${translations[currentLang].of} ${pdfDoc.numPages}`;
+            }
+        }
+
+        // Update summary box
+        function updateSummaryBox() {
+            if (pdfDoc) {
+                selectedCount.textContent = pagesToRemove.length;
+                totalCount.textContent = pdfDoc.numPages;
+
+                if (pagesToRemove.length > 0) {
+                    summaryBox.classList.remove('hidden');
+                } else {
+                    summaryBox.classList.add('hidden');
+                }
             }
         }
 
@@ -482,6 +570,7 @@
             // Clear previous file
             selectedFile = file;
             fileList.innerHTML = '';
+            pagesToRemove = [];
 
             // Add file to the list
             addFileToList(file);
@@ -523,25 +612,16 @@
                 fileList.removeChild(li);
                 // Hide viewer
                 viewerContainer.classList.add('hidden');
+                summaryBox.classList.add('hidden');
                 // Reset PDF viewer
                 pdfDoc = null;
                 pdfViewer.innerHTML = '';
-                pageRotations = [];
+                pagesToRemove = [];
             });
 
             li.appendChild(removeBtn);
             fileList.appendChild(li);
 
-            // Add file details
-            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-
-            const details = document.createElement('div');
-            details.className = 'file-details';
-            details.style.color = '#666';
-            details.style.fontSize = '0.9em';
-            details.style.marginTop = '5px';
-            details.innerHTML = `Size: ${sizeMB} MB`;
-            fileItem.appendChild(details);
         }
 
         // Load PDF file and render previews
@@ -553,8 +633,8 @@
                 pdfDoc = await loadingTask.promise;
                 console.log(`PDF loaded with ${pdfDoc.numPages} pages`);
 
-                // Initialize page rotations array
-                pageRotations = new Array(pdfDoc.numPages).fill(0);
+                // Init pages to remove array
+                pagesToRemove = [];
 
                 // Show the PDF viewer
                 viewerContainer.classList.remove('hidden');
@@ -565,6 +645,9 @@
 
                 // Update page indicator
                 updatePageIndicator();
+
+                // Update summary box
+                updateSummaryBox();
 
             } catch (error) {
                 console.error('Error loading PDF:', error);
@@ -585,22 +668,22 @@
                     const page = await pdfDoc.getPage(i);
                     const pageContainer = document.createElement('div');
                     pageContainer.className = 'page-container';
+                    pageContainer.dataset.pageNum = i;
 
-                    if (pageRotations[i-1] !== 0) {
-                        pageContainer.classList.add(`rotated-${pageRotations[i-1]}`);
+                    // Check if this page is marked for removal
+                    if (pagesToRemove.includes(i)) {
+                        pageContainer.classList.add('selected-for-remove');
+
+                        // Add X badge
+                        const selectionBadge = document.createElement('div');
+                        selectionBadge.className = 'selection-badge';
+                        selectionBadge.textContent = '✕';
+                        pageContainer.appendChild(selectionBadge);
                     }
 
                     // Create page content container
                     const pageContent = document.createElement('div');
                     pageContent.className = 'page-content';
-
-                    // Create rotation badge if page is rotated
-                    if (pageRotations[i-1] !== 0) {
-                        const rotationBadge = document.createElement('div');
-                        rotationBadge.className = 'rotation-badge';
-                        rotationBadge.textContent = `${pageRotations[i-1]}°`;
-                        pageContainer.appendChild(rotationBadge);
-                    }
 
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
@@ -628,28 +711,57 @@
                     pageNumber.textContent = `${translations[currentLang].page} ${i}`;
                     pageContainer.appendChild(pageNumber);
 
-                    // Add rotation buttons
+                    // Add page action buttons
                     const pageTools = document.createElement('div');
                     pageTools.className = 'page-tools';
 
-                    const rotateCCWBtn = document.createElement('button');
-                    rotateCCWBtn.className = 'rotate-btn rotate-ccw';
-                    rotateCCWBtn.innerHTML = '↺';
-                    rotateCCWBtn.title = 'Rotate counterclockwise';
-                    rotateCCWBtn.addEventListener('click', function() {
-                        rotatePage(i, -90); // Rotate counter-clockwise
-                    });
+                    if (pagesToRemove.includes(i)) {
+                        // Keep button
+                        const keepBtn = document.createElement('button');
+                        keepBtn.className = 'keep-page-btn';
+                        keepBtn.textContent = translations[currentLang].keepPage;
+                        keepBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
 
-                    const rotateCWBtn = document.createElement('button');
-                    rotateCWBtn.className = 'rotate-btn rotate-cw';
-                    rotateCWBtn.innerHTML = '↻';
-                    rotateCWBtn.title = 'Rotate clockwise';
-                    rotateCWBtn.addEventListener('click', function() {
-                        rotatePage(i, 90); // Rotate clockwise
-                    });
+                            // Get the current scroll position
+                            const scrollPosition = window.scrollY;
 
-                    pageTools.appendChild(rotateCCWBtn);
-                    pageTools.appendChild(rotateCWBtn);
+                            // Keep the page (remove from pagesToRemove)
+                            togglePageRemoval(i);
+
+                            // Restore scroll position after a small delay to allow DOM updates
+                            setTimeout(() => {
+                                window.scrollTo({
+                                    top: scrollPosition,
+                                    behavior: 'auto'
+                                });
+                            }, 10);
+                        });
+                        pageTools.appendChild(keepBtn);
+                    } else {
+                        // Remove button
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-page-btn';
+                        removeBtn.textContent = translations[currentLang].removePage;
+                        removeBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+
+                            // Get the current scroll position
+                            const scrollPosition = window.scrollY;
+
+                            // Mark the page for removal
+                            togglePageRemoval(i);
+
+                            // Restore scroll position after a small delay to allow DOM updates
+                            setTimeout(() => {
+                                window.scrollTo({
+                                    top: scrollPosition,
+                                    behavior: 'auto'
+                                });
+                            }, 10);
+                        });
+                        pageTools.appendChild(removeBtn);
+                    }
 
                     pageContainer.appendChild(pageTools);
                     pdfViewer.appendChild(pageContainer);
@@ -660,67 +772,162 @@
             }
         }
 
-        // Rotate a page
-        function rotatePage(pageNum, angle) {
-            // Update the rotation value for the page
-            pageRotations[pageNum-1] = (pageRotations[pageNum-1] + angle + 360) % 360;
+        // Toggle page removal selection
+        function togglePageRemoval(pageNum) {
+            const index = pagesToRemove.indexOf(pageNum);
+            if (index > -1) {
+                // Remove page from the array
+                pagesToRemove.splice(index, 1);
+            } else {
+                // Add page to the array
+                pagesToRemove.push(pageNum);
+                // Sort array to maintain page order
+                pagesToRemove.sort((a, b) => a - b);
+            }
 
-            // Re-render the current page set
-            renderPages();
+            // Update the current page view
+            const pageContainer = document.querySelector(`.page-container[data-page-num="${pageNum}"]`);
+            if (pageContainer) {
+                if (pagesToRemove.includes(pageNum)) {
+                    pageContainer.classList.add('selected-for-remove');
+
+                    // Add X badge if not exists
+                    if (!pageContainer.querySelector('.selection-badge')) {
+                        const selectionBadge = document.createElement('div');
+                        selectionBadge.className = 'selection-badge';
+                        selectionBadge.textContent = '✕';
+                        pageContainer.appendChild(selectionBadge);
+                    }
+
+                    // Replace buttons
+                    const pageTools = pageContainer.querySelector('.page-tools');
+                    pageTools.innerHTML = '';
+
+                    const keepBtn = document.createElement('button');
+                    keepBtn.className = 'keep-page-btn';
+                    keepBtn.textContent = translations[currentLang].keepPage;
+                    keepBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        togglePageRemoval(pageNum);
+                    });
+                    pageTools.appendChild(keepBtn);
+
+                } else {
+                    pageContainer.classList.remove('selected-for-remove');
+
+                    // Remove X badge if exists
+                    const selectionBadge = pageContainer.querySelector('.selection-badge');
+                    if (selectionBadge) {
+                        pageContainer.removeChild(selectionBadge);
+                    }
+
+                    // Replace buttons
+                    const pageTools = pageContainer.querySelector('.page-tools');
+                    pageTools.innerHTML = '';
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-page-btn';
+                    removeBtn.textContent = translations[currentLang].removePage;
+                    removeBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        togglePageRemoval(pageNum);
+                    });
+                    pageTools.appendChild(removeBtn);
+                }
+            }
+
+            // Update summary
+            updateSummaryBox();
         }
 
         // Pagination handlers
-        prevPage.addEventListener('click', function() {
+        prevPage.addEventListener('click', function(e) {
+            e.preventDefault();
             if (currentPage > 1) {
                 currentPage = Math.max(1, currentPage - pagesPerView);
                 renderPages();
                 updatePageIndicator();
+                // Scroll to the top of the viewer
+                viewerContainer.scrollIntoView({ behavior: 'smooth' });
             }
         });
 
-        nextPage.addEventListener('click', function() {
+        nextPage.addEventListener('click', function(e) {
+            e.preventDefault();
             if (currentPage + pagesPerView <= pdfDoc.numPages) {
                 currentPage += pagesPerView;
                 renderPages();
                 updatePageIndicator();
+                // Scroll to the top of the viewer
+                viewerContainer.scrollIntoView({ behavior: 'smooth' });
             }
         });
 
-        // Rotate all pages
-        rotateAllBtn.addEventListener('click', function() {
-            for (let i = 0; i < pageRotations.length; i++) {
-                pageRotations[i] = (pageRotations[i] + 90) % 360;
+        // Select all pages
+        selectAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Mark all pages for removal
+            pagesToRemove = [];
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                pagesToRemove.push(i);
             }
+
+            // Re-render current view
             renderPages();
+
+            // Update summary
+            updateSummaryBox();
         });
 
-        // Apply changes (save rotated PDF)
-        applyBtn.addEventListener('click', function() {
+        // Deselect all pages
+        deselectAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Clear pages to remove
+            pagesToRemove = [];
+
+            // Re-render current view
+            renderPages();
+
+            // Update summary
+            updateSummaryBox();
+        });
+
+        // Apply changes (remove selected pages)
+        applyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
             if (!selectedFile) {
                 showMessage('error', translations[currentLang].errorNoFile);
                 return;
             }
 
-            // Check if any rotations were applied
-            const hasRotations = pageRotations.some(rotation => rotation !== 0);
-            if (!hasRotations) {
-                showMessage('info', 'No rotations were applied. Please rotate at least one page.');
+            // Check if any pages are selected for removal
+            if (pagesToRemove.length === 0) {
+                showMessage('info', translations[currentLang].noSelection);
                 return;
             }
 
-            // Submit the rotations to the server
-            applyRotations();
+            // Can't remove all pages
+            if (pagesToRemove.length === pdfDoc.numPages) {
+                showMessage('error', 'Cannot remove all pages. At least one page must remain.');
+                return;
+            }
+
+            // Process the PDF to remove pages
+            processRemoval();
         });
 
-        // Apply rotations to PDF
-        async function applyRotations() {
-            showMessage('info', translations[currentLang].rotating);
+        // Process removal of pages
+        async function processRemoval() {
+            showMessage('info', translations[currentLang].processing);
             applyBtn.disabled = true;
 
             // Create FormData
             const formData = new FormData();
             formData.append('file', selectedFile);
-            formData.append('rotations', JSON.stringify(pageRotations));
+            formData.append('pages_to_remove', JSON.stringify(pagesToRemove));
 
             try {
                 const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
@@ -743,7 +950,7 @@
                 }
 
                 // Send to server
-                fetch('/myapp/backend/api/api_rotate_pdf.php', {
+                fetch('/myapp/backend/api/api_remove_pages.php', {
                     method: 'POST',
                     headers: {
                         'X-API-KEY': apiKey,
@@ -770,14 +977,14 @@
                             downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
                             resultContainer.classList.remove('hidden');
 
-                            console.log('PDF rotation successful. Result ID:', data.result_id);
+                            console.log('PDF pages removal successful. Result ID:', data.result_id);
                         } else {
                             throw new Error(data.error || 'Unknown error');
                         }
                     })
                     .catch(error => {
-                        console.error('PDF Rotation Error:', error);
-                        showMessage('error', translations[currentLang].errorRotate + error.message);
+                        console.error('PDF Processing Error:', error);
+                        showMessage('error', translations[currentLang].errorProcess + error.message);
                     })
             } catch (error) {
                 console.error('PDF Processing Error:', error);

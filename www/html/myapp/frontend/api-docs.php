@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: /myapp/auth/login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="sk">
 <head>
