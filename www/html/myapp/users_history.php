@@ -120,6 +120,47 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
                 align-items: flex-start;
             }
         }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 5px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background-color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .pagination button.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .pagination button:hover:not(.active) {
+            background-color: #f1f1f1;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .per-page-selector {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .per-page-selector select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
@@ -146,16 +187,37 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
     <tbody id="historyBody">
     </tbody>
 </table>
+
+<div class="per-page-selector">
+    <label for="perPage">Items per page:</label>
+    <select id="perPage">
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+    </select>
+</div>
+
+<div class="pagination" id="pagination"></div>
+
 <script>
-
     document.addEventListener("DOMContentLoaded", () => {
-
         const tbody = document.querySelector("#historyBody");
+        const paginationDiv = document.getElementById("pagination");
+        const perPageSelect = document.getElementById("perPage");
 
+        let currentPage = 1;
+        let perPage = 10;
+        let totalPages = 1;
+
+        // Initialize the page
+        perPageSelect.value = perPage;
         loadUserHistory();
 
         function loadUserHistory() {
-            fetch("/myapp/backend/users_history.php", {
+            const url = `/myapp/backend/users_history.php?page=${currentPage}&per_page=${perPage}`;
+
+            fetch(url, {
                 credentials: "include"
             })
                 .then(response => {
@@ -167,8 +229,9 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
                     return response.json();
                 })
                 .then(data => {
-                    if (Array.isArray(data)) {
-                        renderTable(data);
+                    if (data.data && Array.isArray(data.data)) {
+                        renderTable(data.data);
+                        updatePagination(data.pagination);
                     } else {
                         showError(data.error || 'Unknown error');
                     }
@@ -198,9 +261,9 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
                 tbody.appendChild(tr);
             });
 
-            // Attach delete event listeners after rendering
+            // Attach delete event listeners
             document.querySelectorAll(".delete-btn").forEach(button => {
-                button.addEventListener("click", function () {
+                button.addEventListener("click", function() {
                     const username = this.dataset.username;
                     const time = this.dataset.time;
 
@@ -209,6 +272,52 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
                     deleteHistoryEntry(username, time, this.closest('tr'));
                 });
             });
+        }
+
+        function updatePagination(pagination) {
+            totalPages = pagination.last_page;
+            paginationDiv.innerHTML = '';
+
+            // Previous button
+            const prevButton = document.createElement("button");
+            prevButton.textContent = "«";
+            prevButton.disabled = currentPage === 1;
+            prevButton.addEventListener("click", () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadUserHistory();
+                }
+            });
+            paginationDiv.appendChild(prevButton);
+
+            // Page buttons
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement("button");
+                pageButton.textContent = i;
+                if (i === currentPage) {
+                    pageButton.classList.add("active");
+                }
+                pageButton.addEventListener("click", () => {
+                    currentPage = i;
+                    loadUserHistory();
+                });
+                paginationDiv.appendChild(pageButton);
+            }
+
+            // Next button
+            const nextButton = document.createElement("button");
+            nextButton.textContent = "»";
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.addEventListener("click", () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadUserHistory();
+                }
+            });
+            paginationDiv.appendChild(nextButton);
         }
 
         function deleteHistoryEntry(username, time, rowElement) {
@@ -230,7 +339,8 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
                 })
                 .then(response => {
                     if (response.success) {
-                        rowElement.remove();
+                        // Reload current page after deletion to maintain pagination state
+                        loadUserHistory();
                     } else {
                         alert(response.error || "Failed to delete entry.");
                     }
@@ -243,14 +353,18 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
 
         function showError(message) {
             tbody.innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${message}</td></tr>`;
+            paginationDiv.innerHTML = '';
         }
 
-        document.getElementById("exportCsvBtn").addEventListener("click", () => {
-            window.location.href = "/myapp/backend/users_history.php?export=1";
+        // Items per page change handler
+        perPageSelect.addEventListener("change", () => {
+            perPage = parseInt(perPageSelect.value);
+            currentPage = 1;
+            loadUserHistory();
         });
 
-        const exportBtn = document.getElementById("exportCsvBtn");
-        exportBtn.addEventListener("click", () => {
+        // CSV Export button
+        document.getElementById("exportCsvBtn").addEventListener("click", () => {
             window.location.href = "/myapp/backend/users_history.php?export=1";
         });
     });
