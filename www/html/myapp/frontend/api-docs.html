@@ -136,9 +136,10 @@
 <script src="https://unpkg.com/swagger-ui-dist@4/swagger-ui-bundle.js"></script>
 <script src="https://unpkg.com/swagger-ui-dist@4/swagger-ui-standalone-preset.js"></script>
 <script>
-    window.onload = function() {
-        const ui = SwaggerUIBundle({
-            url: "../docs/openapi.yaml", // Cesta k OpenAPI súboru
+    function loadSwaggerUI(lang) {
+        const file = lang === 'en' ? '../docs/openapi_en.yaml' : '../docs/openapi.yaml';
+        SwaggerUIBundle({
+            url: file,
             dom_id: '#swagger-ui',
             deepLinking: true,
             presets: [
@@ -147,27 +148,31 @@
             ],
             layout: "BaseLayout",
             supportedSubmitMethods: ['get', 'post'],
-            onComplete: function() {
-                // Add custom styling after Swagger UI loads
+            onComplete: function () {
                 const topbarElement = document.querySelector('.swagger-ui .topbar');
                 if (topbarElement) {
-                    topbarElement.style.display = 'none'; // Hide the default topbar
+                    topbarElement.style.display = 'none';
                 }
             }
         });
-        window.ui = ui;
+    }
 
-        // Simple language switcher implementation (doesn't actually translate Swagger UI)
-        document.getElementById('lang-en').addEventListener('click', function(e) {
+    window.onload = function () {
+        // Default language
+        loadSwaggerUI('sk');
+
+        // Language switchers
+        document.getElementById('lang-en').addEventListener('click', function (e) {
             e.preventDefault();
-            alert('Documentation language would change to English (feature in development)');
+            loadSwaggerUI('en');
         });
 
-        document.getElementById('lang-sk').addEventListener('click', function(e) {
+        document.getElementById('lang-sk').addEventListener('click', function (e) {
             e.preventDefault();
-            alert('Jazyk dokumentácie by sa zmenil na slovenčinu (funkcia vo vývoji)');
+            loadSwaggerUI('sk');
         });
     };
 </script>
+
 </body>
 </html>

@@ -4,6 +4,15 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
     header("Location: /myapp/auth/login.php");
     exit;
 }
+
+$defaultLang = 'sk'; 
+$selectedLang = $_GET['lang'] ?? $_SESSION['lang'] ?? $defaultLang;
+
+$_SESSION['lang'] = $selectedLang;
+
+require_once 'lang.php'; 
+
+$t = $lang[$selectedLang]; 
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -181,29 +190,33 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
 <body>
 <div class="container">
   <div class="header">
-    <h1><i class="fas fa-history"></i> User History</h1>
+     <h1><i class="fas fa-history"></i> <?= $t['viewuserhistory'] ?></h1>
     <div>
-      <a href="index.php" class="btn"><i class="fas fa-arrow-left"></i> Back</a>
-      <button id="exportCsvBtn" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export to CSV</button>
+    <a href="index.php?lang=<?= $selectedLang ?>" class="btn"><i class="fas fa-arrow-left"></i> <?= $t['back'] ?></a>
+    <button id="exportCsvBtn" class="btn btn-secondary"><i class="fas fa-file-csv"></i> <?= $t['download_manual'] ?></button>
     </div>
+    <div class="language-switcher" style="text-align:right; margin:10px 0;">
+  <a href="?lang=sk">English</a> | <a href="?lang=en">Slovensky</a>
+</div>
   </div>
 
   <table>
     <thead>
     <tr>
-      <th>Username</th>
-      <th>Time</th>
-      <th>Action</th>
-      <th>Source</th>
-      <th>Location</th>
-      <th>Delete</th>
+    <th><?= $t['username'] ?? 'Username' ?></th>
+    <th><?= $t['time'] ?? 'Time' ?></th>
+    <th><?= $t['action'] ?? 'Action' ?></th>
+    <th><?= $t['source'] ?? 'Source' ?></th>
+    <th><?= $t['location'] ?? 'Location' ?></th>
+    <th><?= $t['delete'] ?? 'Delete' ?></th>
+
     </tr>
     </thead>
     <tbody id="historyBody"></tbody>
   </table>
 
   <div class="per-page-selector">
-    <label for="perPage">Items per page:</label>
+  <label for="perPage"><?= $t['items_per_page'] ?>:</label>
     <select id="perPage">
       <option value="10">10</option>
       <option value="25">25</option>
