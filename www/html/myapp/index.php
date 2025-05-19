@@ -406,8 +406,8 @@ $isAdmin = $_SESSION['role'] === 'admin';
         </div>
 
         <div class="tool-card">
-            <h3><i class="fas fa-balance-scale"></i> Compare PDFs</h3>
-            <p>Compare two PDF files to identify differences in content, metadata, and page count.</p>
+            <h3><i class="fas fa-balance-scale"></i> <?= $t['compare'] ?></h3>
+            <p><?= $t['compare_desc'] ?></p>
             <div class="btn-div">
                 <a href="/myapp/frontend/compare_pdfs.php" class="btn"><i class="fas fa-not-equal"></i> Use Tool</a>
             </div>

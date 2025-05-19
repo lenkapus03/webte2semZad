@@ -735,6 +735,35 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
 
         </div>
+        <div class="tool-card">
+            <?php if (!isset($isPdf)): ?>
+                <h3><i class="fas fa-balance-scale"></i> <?= $t['compare'] ?></h3>
+                <p><?= $t['compare_desc'] ?></p>
+            <?php endif; ?>
+            <h3> <?= $langCode === 'en' ? 'Compare PDF Files' : 'Porovnať PDF súbory' ?></h3>
+
+            <p>
+                <?= $langCode === 'en'
+                    ? 'This tool allows you to compare two PDF files in number of pages, contenf of text, pictures and metadata.'
+                    : 'Tento nástroj umožňuje porovnávať dva PDF súbory v počte ich strán, obsahu textu, obrázkov a metadát.'
+                ?>
+            </p>
+
+            <p>
+                <?= $langCode === 'en'
+                    ? 'Once the files are uploaded, click the button to compare the files and view the summary of differences.'
+                    : 'Po nahratí súborov stlačte tlačítko na porovnanie a prezrite si súhrn rozdielov medzi súbormi.'
+                ?>
+            </p>
+
+            <p>
+                <?= $langCode === 'en'
+                    ? 'The resulting PDF with the report of files differences will be available for download immediately.'
+                    : 'Výsledný PDF súbor so záznamom rozdielov bude ihneď dostupný na stiahnutie.'
+                ?>
+            </p>
+
+        </div>
     </div>
 </div>
 <?php if (!isset($isPdf)): ?>
