@@ -10,14 +10,10 @@ if (isset($_SESSION['username'])) {
     }
 }
 
-
-
-
 $_COOKIE = array();
 $_SESSION = array();
 session_unset();
 session_destroy();
-
 
 header('Location: /myapp/index.php');
 exit();

@@ -18,14 +18,19 @@ tags:
   - name: pdf-download
     description: Operácie pre stahovanie spracovaných PDF súborov
 
+security:
+  - ApiKeyAuth: []
+
 
 paths:
   /api/api_rotate_pdf.php:
     post:
       summary: Otočenie stránok PDF súboru
       description: |
-        Otočí zvolený rozsah stránok nahraného PDF súboru o 90, 180 alebo 270 stupňov.
-        Výsledný súbor bude možné stiahnuť pomocou `result_id`.
+        Otočí PDF:
+          - buď rovnakým uhlom (cez `angle`, `page_range_type`, `from_page`, `to_page`)
+          - alebo každý stránku individuálne cez `rotations` pole (napr. `[90, 0, 270, 180]`)
+        Ak sú zadané oba, prioritu má `rotations`.
       tags:
         - pdf-operations
       parameters:
@@ -43,7 +48,6 @@ paths:
               type: object
               required:
                 - file
-                - angle
               properties:
                 file:
                   type: string
@@ -52,23 +56,27 @@ paths:
                 angle:
                   type: integer
                   enum: [90, 180, 270]
-                  description: Uhol, o ktorý sa majú stránky otočiť
+                  description: Uhol pre všetky strany (nepoužíva sa pri `rotations`)
                 page_range_type:
                   type: string
                   enum: [all, custom]
                   default: all
-                  description: |
-                    Typ rozsahu strán, ktoré sa majú otočiť.
-                    Ak `custom`, musia byť zadané aj `from_page` a `to_page`.
+                  description: Typ rozsahu strán (len pri použití `angle`)
                 from_page:
                   type: integer
-                  description: Počiatočné číslo strany (iba pri `custom`)
+                  description: Od ktorej strany (iba pri `custom`)
                 to_page:
                   type: integer
-                  description: Koncové číslo strany (iba pri `custom`)
+                  description: Po ktorú stranu (iba pri `custom`)
+                rotations:
+                  type: string
+                  description: |
+                    JSON pole uhlov pre každú stranu (napr. `[90, 0, 270, 180]`)
+                    0 = žiadna rotácia. Prvý prvok = prvá strana PDF.
+                  example: '[90, 0, 270, 180]'
       responses:
         '200':
-          description: Úspešné spracovanie a otočenie stránok PDF
+          description: Úspešné otočenie
           content:
             application/json:
               schema:
@@ -85,19 +93,19 @@ paths:
                     items:
                       type: string
         '400':
-          description: Chyba požiadavky
+          description: Chybná požiadavka
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
-          description: Neplatný alebo chýbajúci API kľúč
+          description: Neplatný API kľúč
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '405':
-          description: Nepovolená HTTP metóda
+          description: Nepovolená metóda
           content:
             application/json:
               schema:
@@ -108,6 +116,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
 
     get:
       summary: Informácie o API pre otáčanie PDF
@@ -1172,6 +1181,659 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/api_reorder_pages.php:
+    get:
+      summary: Získaj informácie o API na zmenu poradia strán PDF
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API kľúč na autentifikáciu používateľa
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Informácie o dostupných metódach a parametroch API
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  endpoint:
+                    type: string
+                  description:
+                    type: string
+                  methods:
+                    type: object
+                  post_parameters:
+                    type: object
+                  post_response:
+                    type: object
+                  download_url:
+                    type: string
+        '401':
+          description: Neplatný alebo chýbajúci API kľúč
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+    post:
+      summary: Zmena poradia strán v PDF súbore
+      tags:
+        - pdf-operations
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF súbor, ktorého stránky sa majú preusporiadať
+                page_order:
+                  type: string
+                  description: JSON pole s novým poradím strán (1-based)
+              required:
+                - file
+                - page_order
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API kľúč na autentifikáciu používateľa
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Úspešne preusporiadaný PDF súbor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result_id:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Chýbajúce alebo neplatné vstupné dáta
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+        '401':
+          description: Neplatný alebo chýbajúci API kľúč
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+        '500':
+          description: Chyba na strane servera
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+  /api/api_split_pdf.php:
+    get:
+      tags:
+        - pdf-operations
+      summary: Získaj informácie o API pre rozdelenie PDF
+      description: Vráti popis a dostupné metódy pre API na rozdelenie PDF dokumentu.
+      operationId: getSplitPdfInfo
+      responses:
+        '200':
+          description: Úspešné načítanie informácií o API
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  endpoint:
+                    type: string
+                  description:
+                    type: string
+                  methods:
+                    type: object
+                    properties:
+                      GET:
+                        type: string
+                      POST:
+                        type: string
+                  post_parameters:
+                    type: object
+                    properties:
+                      file:
+                        type: string
+                  post_response:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                      result_id:
+                        type: string
+                      message:
+                        type: string
+                      page_count:
+                        type: integer
+                  download_url:
+                    type: string
+    post:
+      tags:
+        - pdf-operations
+      summary: Rozdelenie PDF dokumentu na jednotlivé stránky
+      description: Nahraj PDF súbor, ktorý bude rozdelený. Výsledkom bude ZIP archív všetkých strán.
+      operationId: splitPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF súbor, ktorý sa má rozdeliť
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API kľúč na autentifikáciu používateľa
+      responses:
+        '200':
+          description: PDF bol úspešne rozdelený
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result_id:
+                    type: string
+                    description: ID ZIP archívu s jednotlivými stranami
+                  message:
+                    type: string
+                  page_count:
+                    type: integer
+        '400':
+          description: Chýbajúci súbor alebo nesprávny vstup
+        '401':
+          description: Neplatný alebo chýbajúci API kľúč
+        '500':
+          description: Interná chyba servera
+
+  /api/api_watermark_pdf.php:
+    get:
+      tags:
+        - pdf-operations
+      summary: Informácie o Watermark PDF API
+      description: Získaj popis a dostupné parametre pre API, ktoré pridáva vodoznak do PDF.
+      operationId: getWatermarkPdfInfo
+      responses:
+        '200':
+          description: Úspešné získanie informácií
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  endpoint:
+                    type: string
+                  description:
+                    type: string
+                  methods:
+                    type: object
+                    properties:
+                      GET:
+                        type: string
+                      POST:
+                        type: string
+                  post_parameters:
+                    type: object
+                    properties:
+                      file:
+                        type: string
+                      watermark_text:
+                        type: string
+                      position:
+                        type: string
+                      opacity:
+                        type: number
+                      color:
+                        type: string
+                      font_size:
+                        type: integer
+                      rotation:
+                        type: integer
+                  post_response:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                      result_id:
+                        type: string
+                      message:
+                        type: string
+                  download_url:
+                    type: string
+
+    post:
+      tags:
+        - pdf-operations
+      summary: Pridanie vodoznaku do PDF
+      description: Nahraj PDF a pridaj vlastný textový vodoznak s voliteľným formátovaním.
+      operationId: watermarkPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - watermark_text
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF súbor, ktorý sa má upraviť
+                watermark_text:
+                  type: string
+                  description: Text vodoznaku (povinný)
+                position:
+                  type: string
+                  enum: [center, top-left, top-right, bottom-left, bottom-right]
+                  description: Umiestnenie vodoznaku
+                opacity:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  description: Priehľadnosť vodoznaku (0–1)
+                color:
+                  type: string
+                  pattern: '^#(?:[0-9a-fA-F]{3}){1,2}$'
+                  description: Farba v hex formáte (napr. `#000000`)
+                font_size:
+                  type: integer
+                  minimum: 1
+                  description: Veľkosť písma
+                rotation:
+                  type: integer
+                  minimum: 0
+                  maximum: 360
+                  description: Rotácia v stupňoch (0–360)
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API kľúč na autentifikáciu používateľa
+      responses:
+        '200':
+          description: Vodoznak úspešne pridaný
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result_id:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Chýbajúci súbor alebo neplatné údaje
+        '401':
+          description: Neplatný alebo chýbajúci API kľúč
+        '500':
+          description: Interná chyba servera
+
+  /api/api_zip_download_pdf.php:
+    get:
+      tags:
+        - pdf-download
+      summary: Stiahni ZIP archív s jednotlivými stránkami PDF
+      description: |
+        Endpoint na stiahnutie výsledného `.zip` súboru, ktorý obsahuje rozdelené stránky PDF. 
+        Funguje iba ak `result_id` je platné a existuje v session.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            example: 5e2f6b7a3c8e4
+          description: Identifikátor rozdeleného PDF (uložený v session ako `pdf_zip_id`)
+
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            API kľúč pre autentifikáciu. Môže byť zaslaný ako `X-API-Key` header alebo cez query param.
+
+      responses:
+        '200':
+          description: Úspešné stiahnutie ZIP súboru
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+
+        '400':
+          description: Chýbajúci alebo neplatný result ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+        '401':
+          description: Neplatný alebo chýbajúci API kľúč
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+        '404':
+          description: Súbor neexistuje alebo session vypršala
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+        '500':
+          description: Neočakávaná chyba
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+  /auth/login.php:
+    post:
+      tags:
+        - authentication
+      summary: Prihlásenie používateľa
+      description: Overenie používateľského mena a hesla. Pri úspechu sa vytvorí session a vráti sa redirect URL.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: jan.kovac
+                password:
+                  type: string
+                  format: password
+                  example: heslo123
+      responses:
+        '200':
+          description: Úspešné prihlásenie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  redirect:
+                    type: string
+                    example: /myapp/index.php
+                  user:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+                        example: jan.kovac
+        '400':
+          description: Chýbajúce alebo neplatné údaje
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Username must be at least 3 characters"
+        '401':
+          description: Neplatné meno alebo heslo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid username or password"
+        '405':
+          description: Nepodporovaná HTTP metóda
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request method"
+
+  /auth/register.php:
+    post:
+      tags:
+        - authentication
+      summary: Registrácia používateľa
+      description: Vytvorenie nového používateľa s rolou, heslom a pridelením API kľúča.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+                - role
+              properties:
+                username:
+                  type: string
+                  example: jan.kovac
+                password:
+                  type: string
+                  format: password
+                  example: silneheslo123
+                role:
+                  type: string
+                  enum: [user, admin]
+                  example: user
+      responses:
+        '200':
+          description: Registrácia úspešná
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  api_key:
+                    type: string
+                    example: 3807feff0b576a9ae715e30b930ab495ef40e4e56a3f5bed7e8bec98e08bef07
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: user_id
+                      username:
+                        type: string
+                        example: jan.kovac
+        '400':
+          description: Neplatné vstupné údaje (meno, heslo, rola)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Password must be at least 6 characters"
+        '409':
+          description: Používateľské meno už existuje
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Username already taken"
+        '405':
+          description: Nepovolená HTTP metóda
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request method"
+
+  /users_history.php:
+    get:
+      tags:
+        - admin
+      summary: Získaj históriu akcií používateľov
+      description: >
+        Endpoint vráti zoznam akcií vykonaných používateľmi. Prístup len pre admina.
+        Ak je prítomný query parameter `export`, vracia CSV súbor.
+      parameters:
+        - in: query
+          name: export
+          schema:
+            type: boolean
+          description: Ak je nastavené, vráti CSV namiesto JSON.
+      responses:
+        '200':
+          description: Úspešne vrátená história akcií
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    users_username:
+                      type: string
+                    time:
+                      type: string
+                      format: date-time
+                    action_type:
+                      type: string
+                    source:
+                      type: string
+                    location:
+                      type: string
+        '403':
+          description: Unauthorized access
+        '401':
+          description: Invalid API key
+      security:
+        - ApiKeyAuth: []
+
+  /users_history/{id}:
+    delete:
+      summary: Vymaž konkrétny záznam histórie podľa ID
+      tags:
+        - admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID záznamu v histórii
+      responses:
+        '200':
+          description: Záznam úspešne vymazaný
+        '404':
+          description: Záznam sa nenašiel
+        '400':
+          description: Chýbajúce údaje
+        '500':
+          description: Chyba servera
+      security:
+        - ApiKeyAuth: []
+
 
 components:
   schemas:
@@ -1187,3 +1849,8 @@ components:
       required:
         - success
         - error
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
