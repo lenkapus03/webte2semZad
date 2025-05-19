@@ -72,6 +72,9 @@ try {
     $code = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 400;
     http_response_code($code);
     $response['error'] = (array)($response['error'] ?? $e->getMessage());
+    if ($code >= 500) {
+        error_log("Login error: " . $e->getMessage());
+    }
 }
 
 echo json_encode($response);
