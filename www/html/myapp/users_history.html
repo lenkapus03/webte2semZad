@@ -1,153 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>User History – Admin</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #4285F4;
-            --secondary-color: #34A853;
-            --danger-color: #EA4335;
-            --warning-color: #FBBC05;
-            --light-color: #f8f9fa;
-            --dark-color: #343a40;
-            --border-radius: 8px;
-            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
-        }
+  <meta charset="UTF-8">
+  <title>User History</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --primary-color: #4285F4;
+      --secondary-color: #34A853;
+      --danger-color: #EA4335;
+      --light-color: #f8f9fa;
+      --dark-color: #343a40;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f7;
-            color: #333;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #ddd;
-        }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f7;
+      color: #333;
+    }
 
-        .header h1 {
-            margin: 0;
-            color: var(--primary-color);
-            font-size: 2.2em;
-        }
+    .container {
+      max-width: 100%;
+      width: 100%;
+      margin: 0 auto;
+      padding: 10px;
+    }
 
-        .btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            margin: 4px 5px;
-            cursor: pointer;
-            border-radius: var(--border-radius);
-            transition: var(--transition);
-            box-shadow: var(--box-shadow);
-            text-decoration: none;
-        }
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
 
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
+    .header h1 {
+      margin: 0;
+      color: var(--primary-color);
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        .btn-secondary {
-            background-color: var(--secondary-color);
-        }
+    .btn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      box-shadow: var(--box-shadow);
+      text-decoration: none;
+      font-size: 14px;
+      margin: 5px;
+      display: inline-block;
+    }
 
-        .btn-danger {
-            background-color: var(--danger-color);
-        }
+    .btn-secondary {
+      background-color: var(--secondary-color);
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            box-shadow: var(--box-shadow);
-            margin-top: 20px;
-        }
+    .btn-danger {
+      background-color: var(--danger-color);
+    }
 
-        thead {
-            background-color: var(--primary-color);
-            color: white;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      overflow: hidden;
+    }
 
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
+    thead {
+      background-color: var(--primary-color);
+      color: white;
+    }
 
-        tr:hover {
-            background-color: #f1f1f1;
-        }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      word-break: break-word;
+    }
 
-        .delete-btn {
-            background-color: var(--danger-color);
-            color: white;
-            padding: 6px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
 
-        .delete-btn:hover {
-            opacity: 0.85;
-        }
+    .delete-btn {
+      background-color: var(--danger-color);
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
 
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-    </style>
+    /* Mobile card view */
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 15px;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 10px;
+      }
+
+      td {
+        border: none;
+        padding: 8px 10px;
+        position: relative;
+        text-align: left;
+      }
+
+      td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        margin-bottom: 4px;
+        color: var(--primary-color);
+      }
+
+      .delete-btn {
+        margin-top: 8px;
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-
-<div class="header">
-    <h1><i class="fas fa-history"></i> User History</h1>
-    <div>
-        <a href="index.php" class="btn"><i class="fas fa-arrow-left"></i> Back</a>
-        <button id="exportCsvBtn" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export to CSV</button>
+  <div class="container">
+    <div class="header">
+        <h1><i class="fas fa-history"></i> User History</h1>
+        <div>
+            <a href="index.php" class="btn"><i class="fas fa-arrow-left"></i> Back</a>
+            <button id="exportCsvBtn" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export to CSV</button>
+        </div>
     </div>
-</div>
-
-<table>
-    <thead>
-    <tr>
-        <th>Username</th>
-        <th>Time</th>
-        <th>Action</th>
-        <th>Source</th>
-        <th>Location</th>
-        <th>Delete</th>
-    </tr>
-    </thead>
-    <tbody id="historyBody">
-    </tbody>
-</table>
-
-<script src="users_history.js" defer></script>
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const exportBtn = document.getElementById("exportCsvBtn");
-        exportBtn.addEventListener("click", () => {
-            window.location.href = "/myapp/backend/users_history.php?export=1";
-        });
-    });
-</script>
-</body>
-</html>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+            <tr>
+                <th>Username</th>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Source</th>
+                <th>Location</th>
+                <th>Delete</th>
+            </tr>
+            </thead>
+            <tbody id="historyBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <script src="users_history.js" defer></script>
+    </body>
+    </html>

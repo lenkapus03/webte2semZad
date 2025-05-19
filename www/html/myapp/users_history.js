@@ -34,15 +34,15 @@ document.addEventListener("DOMContentLoaded", function () {
             const tr = document.createElement("tr");
 
             tr.innerHTML = `
-                <td>${entry.users_username}</td>
-                <td>${entry.time}</td>
-                <td>${entry.action_type}</td>
-                <td>${entry.source}</td>
-                <td>${entry.location}</td>
-                <td>
+                <td data-label="Username">${entry.users_username}</td>
+                <td data-label="Time">${entry.time}</td>
+                <td data-label="Action">${entry.action_type}</td>
+                <td data-label="Source">${entry.source}</td>
+                <td data-label="Location">${entry.location}</td>
+                <td data-label="Delete">
                     <button class="delete-btn" data-username="${entry.users_username}" data-time="${entry.time}">🗑️</button>
                 </td>
-            `;
+`;
 
             tbody.appendChild(tr);
         });
