@@ -425,7 +425,6 @@ $isAdmin = $_SESSION['role'] === 'admin';
 
 
 <div class="tools-section">
-    <h2><i class="fas fa-tools"></i> <?= $t['tools_title'] ?></h2>
 
         <h2><i class="fas fa-tools"></i> <?= $langCode === 'en' ? 'PDF Tools' : 'PDF Nástroje' ?></h2>
 
@@ -440,7 +439,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
     <p>
         <?= $langCode === 'en'
             ? 'The application offers full OpenAPI 3.0 (Swagger) documentation. It describes all available endpoints, required parameters, response formats, and authentication methods. The documentation is accessible via the "OpenAPI Documentation" button at the bottom of the main page. It also allows try out individual tools and test the web service directly in the browser.'
-            : 'Aplikácia ponúka k dispozícii dokumentáciu podľa špecifikácie OpenAPI 3.0 (Swagger). Popisuje všetky dostupné API endpointy, požadované parametre, formáty odpovedí a metódy autentifikácie.  Dokumentácia je dostupná cez tlačidlo "OpenAPI Dokumentácia" v spodnej časti hlavnej stránky. Umožňuje tiež priamo v prehliadači vyskúšať jednotlivé nástroje a otestovať webovú službu.'
+            : 'Aplikácia ponúka k dispozícii dokumentáciu podľa špecifikácie OpenAPI 3.0 (Swagger). Popisuje všetky dostupné API endpointy, požadované parametre, formáty odpovedí a metódy autentifikácie.  Dokumentácia je dostupná cez tlačidlo "OpenAPI Dokumentácia" v spodnej časti hlavnej stránky.'
         ?>
     </p>
 
@@ -448,11 +447,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
     <div class="tools-grid">
 
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-object-group"></i> <?= $t['merge'] ?></h3>
-            <p><?= $t['merge_desc'] ?></p>
-            <?php endif; ?>
-            <h3> <?= $langCode === 'en' ? 'Merge PDF Files' : 'Spájanie PDF súborov' ?></h3>
+            <h2> <i class="fas fa-object-group"></i> <?= $langCode === 'en' ? 'Merge PDF Files' : 'Spájanie PDF súborov' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -483,11 +478,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-file-alt"></i> <?= $t['split'] ?></h3>
-            <p><?= $t['split_desc'] ?></p>
-            <?php endif; ?>
-            <h3> <?= $langCode === 'en' ? 'Split PDF File' : 'Rozdelenie PDF súboru' ?></h3>
+            <h2> <i class="fas fa-file-alt"></i> <?= $langCode === 'en' ? 'Split PDF File' : 'Rozdelenie PDF súboru' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -518,11 +509,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-sync-alt"></i> <?= $t['rotate'] ?></h3>
-            <p><?= $t['rotate_desc'] ?></p>
-            <?php endif; ?>
-            <h3> <?= $langCode === 'en' ? 'Rotate PDF Pages' : 'Rotácia PDF strán' ?></h3>
+            <h2> <i class="fas fa-sync-alt"></i> <?= $langCode === 'en' ? 'Rotate PDF Pages' : 'Rotácia PDF strán' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -553,11 +540,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-trash-alt"></i> <?= $t['remove'] ?></h3>
-            <p><?= $t['remove_desc'] ?></p>
-            <?php endif; ?>
-            <h3> <?= $langCode === 'en' ? 'Remove PDF Pages' : 'Odstránenie strán z PDF' ?></h3>
+            <h2> <i class="fas fa-trash-alt"></i> <?= $langCode === 'en' ? 'Remove PDF Pages' : 'Odstránenie strán z PDF' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -588,11 +571,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-sort-amount-down"></i> <?= $t['reorder'] ?></h3>
-            <p><?= $t['reorder_desc'] ?></p>
-            <?php endif; ?>
-            <h3> <?= $langCode === 'en' ? 'Reorder PDF Pages' : 'Zmena poradia strán PDF' ?></h3>
+            <h2> <i class="fas fa-sort-amount-down"></i> <?= $langCode === 'en' ? 'Reorder PDF Pages' : 'Zmena poradia strán PDF' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -623,11 +602,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-lock"></i> <?= $t['encrypt'] ?></h3>
-            <p><?= $t['encrypt_desc'] ?></p>
-            <?php endif; ?>
-            <h3><?= $langCode === 'en' ? 'Password Protect PDF' : 'Zabezpečenie PDF heslom' ?></h3>
+            <h2><i class="fas fa-lock"></i> <?= $langCode === 'en' ? 'Password Protect PDF' : 'Zabezpečenie PDF heslom' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -651,11 +626,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-file-export"></i> <?= $t['extract'] ?></h3>
-            <p><?= $t['extract_desc'] ?></p>
-            <?php endif; ?>
-            <h3> <?= $langCode === 'en' ? 'Extract PDF Pages' : 'Extrahovanie PDF strán' ?></h3>
+            <h2> <i class="fas fa-file-export"></i> <?= $langCode === 'en' ? 'Extract PDF Pages' : 'Extrahovanie PDF strán' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -679,11 +650,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-unlock"></i> <?= $t['unlock'] ?></h3>
-            <p><?= $t['unlock_desc'] ?></p>
-            <?php endif; ?>
-            <h3><?= $langCode === 'en' ? 'Unlock PDF' : 'Odomknutie PDF' ?></h3>
+            <h2><i class="fas fa-unlock"></i> <?= $langCode === 'en' ? 'Unlock PDF' : 'Odomknutie PDF' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -707,11 +674,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             </p>
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-            <h3><i class="fas fa-stamp"></i> <?= $t['watermark'] ?></h3>
-            <p><?= $t['watermark_desc'] ?></p>
-            <?php endif; ?>
-            <h3> <?= $langCode === 'en' ? 'Watermark PDF File' : 'Pridať vodoznak do PDF' ?></h3>
+            <h2> <i class="fas fa-stamp"></i> <?= $langCode === 'en' ? 'Watermark PDF File' : 'Pridať vodoznak do PDF' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -736,11 +699,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
 
         </div>
         <div class="tool-card">
-            <?php if (!isset($isPdf)): ?>
-                <h3><i class="fas fa-balance-scale"></i> <?= $t['compare'] ?></h3>
-                <p><?= $t['compare_desc'] ?></p>
-            <?php endif; ?>
-            <h3> <?= $langCode === 'en' ? 'Compare PDF Files' : 'Porovnať PDF súbory' ?></h3>
+            <h2> <i class="fas fa-balance-scale"></i> <?= $langCode === 'en' ? 'Compare PDF Files' : 'Porovnať PDF súbory' ?></h2>
 
             <p>
                 <?= $langCode === 'en'
@@ -768,10 +727,10 @@ $isAdmin = $_SESSION['role'] === 'admin';
 </div>
 <?php if (!isset($isPdf)): ?>
     <div class="documentation-link">
-        <a href="index.php" class="btn btn-secondary">
-            <i class="fas fa-book"></i> <?= $t['back'] ?>
+        <a href="index.php" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> <?= $t['back'] ?>
         </a>
-        <a href="domPdfScript.php" class="btn btn-primary">
+        <a href="domPdfScript.php" class="btn btn-secondary">
             <i class="fas fa-download"></i> <?= $t['download_manual'] ?>
         </a>
     </div>

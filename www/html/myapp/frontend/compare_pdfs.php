@@ -293,7 +293,7 @@ if (!isset($_SESSION['username'])) {
 </head>
 <body>
 <div class="navigation">
-    <a href="/myapp/index.php">← Back to Dashboard</a>
+    <a id="back" href="/myapp/index.php">← Back to Dashboard</a>
 </div>
 
 <div class="language-switcher">
@@ -455,7 +455,8 @@ if (!isset($_SESSION['username'])) {
                 'noDifferences': 'No differences found',
                 'previous': 'Previous',
                 'next': 'Next',
-                'downloadReport': 'Download Report'
+                'downloadReport': 'Download Report',
+                'back': '← Back to Dashboard'
             },
             'sk': {
                 'title': 'Porovnať PDF súbory',
@@ -496,7 +497,8 @@ if (!isset($_SESSION['username'])) {
                 'noDifferences': 'Žiadne rozdiely neboli nájdené',
                 'previous': 'Predchádzajúca',
                 'next': 'Nasledujúca',
-                'downloadReport': 'Stiahnuť správu'
+                'downloadReport': 'Stiahnuť správu',
+                'back': '← Späť na prehľad'
             }
         };
 
@@ -544,7 +546,7 @@ if (!isset($_SESSION['username'])) {
                 pdfModal.style.display = 'none';
             }
         });
-
+        const back = document.getElementById('back');
         // Function to set the language
         function setLanguage(lang) {
             currentLang = lang;
@@ -557,6 +559,7 @@ if (!isset($_SESSION['username'])) {
             selectFileBtn2.textContent = translations[lang].selectFile;
             compareBtn.textContent = translations[lang].compareBtn;
             resultsTitle.textContent = translations[lang].resultsTitle;
+            back.textContent = translations[lang].back;
 
             // Update remove buttons
             document.querySelectorAll('.remove-btn').forEach(btn => {

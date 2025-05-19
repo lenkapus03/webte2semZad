@@ -409,7 +409,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
             <h3><i class="fas fa-balance-scale"></i> <?= $t['compare'] ?></h3>
             <p><?= $t['compare_desc'] ?></p>
             <div class="btn-div">
-                <a href="/myapp/frontend/compare_pdfs.php" class="btn"><i class="fas fa-not-equal"></i> Use Tool</a>
+                <a href="/myapp/frontend/compare_pdfs.php" class="btn"><i class="fas fa-not-equal"></i> <?= $t['use_tool'] ?></a>
             </div>
         </div>
 
