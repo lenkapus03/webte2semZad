@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: /myapp/auth/login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -765,7 +772,8 @@
                             const downloadResponse = await fetch(downloadUrl, {
                                 method: 'GET',
                                 headers: {
-                                    'X-API-KEY': apiKey // Include API key in the header
+                                    'X-API-KEY': apiKey,
+                                    'X-Request-Source': 'frontend'
                                 }
                             });
 
@@ -805,7 +813,7 @@
         }
 
 
-            // Display comparison results
+        // Display comparison results
         function displayResults(data) {
             comparisonResults.innerHTML = '';
 

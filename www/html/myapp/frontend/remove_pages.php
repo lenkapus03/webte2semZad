@@ -1,9 +1,16 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: /myapp/auth/login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reorder PDF Pages</title>
+    <title>Remove PDF Pages</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -132,8 +139,45 @@
             margin-bottom: 20px;
             padding: 10px 0;
             border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
             background-color: white;
             z-index: 100;
+        }
+        .pagination {
+            display: flex;
+            align-items: center;
+        }
+        .pagination button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pagination-text {
+            margin: 0 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .select-all-btn {
+            background-color: #2196F3;
+        }
+        .apply-btn {
+            background-color: #4CAF50;
+        }
+        .deselect-all-btn {
+            background-color: #607D8B;
         }
 
         /* PDF Viewer styles */
@@ -153,17 +197,22 @@
             align-items: center;
             position: relative;
             min-height: 300px;
-            cursor: move;
-            transition: all 0.2s ease-in-out;
+            transition: opacity 0.3s;
         }
-        .page-container.dragging {
-            opacity: 0.7;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            z-index: 1000;
-            transform: scale(1.05);
+        .page-container.selected-for-remove {
+            opacity: 0.5;
+            border: 1px solid #f44336;
         }
-        .page-container.drag-over {
-            border: 2px dashed #2196F3;
+        .page-container.selected-for-remove::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(244, 67, 54, 0.2);
+            z-index: 2;
+            pointer-events: none;
         }
         .page-content {
             width: 100%;
@@ -179,40 +228,63 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             background-color: white;
         }
+        .selection-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 10;
+        }
         .page-number {
             font-weight: bold;
             margin: 15px 0;
             font-size: 16px;
-            position: relative;
         }
-        .original-page-number {
-            position: absolute;
-            top: -20px;
-            right: -10px;
-            background-color: #ffc107;
-            color: #333;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
+        .page-tools {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
+            gap: 10px;
+            margin-top: 5px;
         }
-        .reordering-indicator {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #2196F3;
+        .remove-page-btn {
+            background-color: #f44336;
             color: white;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
             font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .remove-page-btn:hover {
+            background-color: #d32f2f;
+        }
+        .keep-page-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .keep-page-btn:hover {
+            background-color: #388E3C;
         }
         .summary-box {
             margin: 20px 0;
@@ -246,7 +318,7 @@
     <a href="#" id="lang-en">English</a> | <a href="#" id="lang-sk">Slovensky</a>
 </div>
 
-<h1 id="title">Reorder PDF Pages</h1>
+<h1 id="title">Remove PDF Pages</h1>
 
 <div class="dropzone" id="dropzone">
     <p id="dropText">Drag and drop a PDF file here, or click to select file</p>
@@ -258,14 +330,20 @@
 
 <div id="viewerContainer" class="hidden">
     <div class="controls-container">
+        <div class="pagination">
+            <button id="prevPage">←</button>
+            <span class="pagination-text" id="pageIndicator">Page 1-3 of 3</span>
+            <button id="nextPage">→</button>
+        </div>
         <div class="action-buttons">
-            <button class="btn btn-secondary" id="resetOrderBtn">Reset Order</button>
-            <button class="btn" id="applyBtn">Apply Page Reordering</button>
+            <button class="btn select-all-btn" id="selectAllBtn">Select All Pages</button>
+            <button class="btn deselect-all-btn" id="deselectAllBtn">Deselect All</button>
+            <button class="btn apply-btn" id="applyBtn">Remove Selected Pages</button>
         </div>
     </div>
 
     <div id="summaryBox" class="summary-box hidden">
-        <span id="reorderInfo">Drag and drop pages to reorder them. </span><span style="background-color: #ffc107; padding: 2px 5px; border-radius: 3px; font-weight: bold;">The original page number is shown in yellow.</span>
+        <p><strong id="selectedCount">0</strong> pages selected for removal out of <strong id="totalCount">0</strong> total pages.</p>
     </div>
 
     <div id="pdfViewer" class="pdf-viewer">
@@ -275,7 +353,7 @@
 
 <div id="messageContainer" class="hidden"></div>
 <div id="resultContainer" class="hidden">
-    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Reorded PDF</a>
+    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Modified PDF</a>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -287,43 +365,49 @@
         // Translation object
         const translations = {
             'en': {
-                'title': 'Reorder PDF Pages',
+                'title': 'Remove PDF Pages',
                 'dropText': 'Drag and drop a PDF file here, or click to select file',
                 'selectFile': 'Select File',
-                'resetOrderBtn': 'Reset Order',
-                'applyBtn': 'Apply Page Reordering',
+                'selectAllBtn': 'Select All Pages',
+                'deselectAllBtn': 'Deselect All',
+                'applyBtn': 'Remove Selected Pages',
                 'downloadLink': 'Download Modified PDF',
                 'processing': 'Processing PDF...',
-                'success': 'PDF pages were successfully reordered!',
+                'success': 'PDF pages were successfully removed!',
                 'errorNoFile': 'Please select a PDF file.',
                 'errorUpload': 'Error uploading file: ',
                 'errorProcess': 'Error processing PDF file: ',
                 'remove': 'Remove',
+                'removePage': 'Remove Page',
+                'keepPage': 'Keep Page',
                 'page': 'Page',
                 'of': 'of',
-                'reorderInfo': 'Drag and drop pages to reorder them. The original page number is shown in yellow.',
-                'originalPage': 'Original:',
-                'noChange': 'The page order has not changed. Make some changes first.',
+                'pagesSelected': 'pages selected for removal out of',
+                'totalPages': 'total pages',
+                'noSelection': 'No pages selected for removal. Please select at least one page to remove.',
                 'back': '← Back to Dashboard'
             },
             'sk': {
-                'title': 'Preusporiadanie PDF stránok',
+                'title': 'Odstránenie PDF stránok',
                 'dropText': 'Pretiahnite PDF súbor sem, alebo kliknite pre výber súboru',
                 'selectFile': 'Vybrať súbor',
-                'resetOrderBtn': 'Obnoviť poradie',
-                'applyBtn': 'Použiť preusporiadanie',
+                'selectAllBtn': 'Vybrať všetky stránky',
+                'deselectAllBtn': 'Zrušiť výber',
+                'applyBtn': 'Odstrániť vybrané stránky',
                 'downloadLink': 'Stiahnuť upravený PDF',
                 'processing': 'Spracovávam PDF...',
-                'success': 'PDF stránky boli úspešne preusporiadané!',
+                'success': 'PDF stránky boli úspešne odstránené!',
                 'errorNoFile': 'Vyberte PDF súbor.',
                 'errorUpload': 'Chyba pri nahrávaní súboru: ',
                 'errorProcess': 'Chyba pri spracovaní PDF súboru: ',
                 'remove': 'Odstrániť',
+                'removePage': 'Odstrániť stránku',
+                'keepPage': 'Ponechať stránku',
                 'page': 'Strana',
                 'of': 'z',
-                'reorderInfo': 'Presuňte stránky pretiahnutím myšou. Pôvodné číslo strany je zobrazené žltou.',
-                'originalPage': 'Pôvodná:',
-                'noChange': 'Poradie strán sa nezmenilo. Najprv vykonajte nejaké zmeny.',
+                'pagesSelected': 'stránok vybraných na odstránenie z',
+                'totalPages': 'všetkých stránok',
+                'noSelection': 'Žiadne stránky neboli vybrané na odstránenie. Vyberte aspoň jednu stránku na odstránenie.',
                 'back': '← Späť na prehľad'
             }
         };
@@ -338,8 +422,12 @@
         const fileList = document.getElementById('fileList');
         const viewerContainer = document.getElementById('viewerContainer');
         const pdfViewer = document.getElementById('pdfViewer');
-        const resetOrderBtn = document.getElementById('resetOrderBtn');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
         const applyBtn = document.getElementById('applyBtn');
+        const prevPage = document.getElementById('prevPage');
+        const nextPage = document.getElementById('nextPage');
+        const pageIndicator = document.getElementById('pageIndicator');
         const messageContainer = document.getElementById('messageContainer');
         const resultContainer = document.getElementById('resultContainer');
         const downloadLink = document.getElementById('downloadLink');
@@ -348,19 +436,18 @@
         const langEn = document.getElementById('lang-en');
         const langSk = document.getElementById('lang-sk');
         const summaryBox = document.getElementById('summaryBox');
-        const reorderInfo = document.getElementById('reorderInfo');
+        const selectedCount = document.getElementById('selectedCount');
+        const totalCount = document.getElementById('totalCount');
         const back = document.getElementById('back');
 
         // PDF viewer variables
         let pdfDoc = null;
-        let pageOrder = []; // Array to track current page order [1, 2, 3, 4, ...]
-        let originalPageOrder = []; // Array to track original page order for reference
+        let currentPage = 1;
+        let pagesPerView = 3;
+        let pagesToRemove = [];
 
         // Selected file
         let selectedFile = null;
-
-        // Element being dragged
-        let draggedElement = null;
 
         // Language switcher event listeners
         langEn.addEventListener('click', function(e) {
@@ -379,28 +466,57 @@
             title.textContent = translations[lang].title;
             dropText.textContent = translations[lang].dropText;
             selectFileBtn.textContent = translations[lang].selectFile;
-            resetOrderBtn.textContent = translations[lang].resetOrderBtn;
+            selectAllBtn.textContent = translations[lang].selectAllBtn;
+            deselectAllBtn.textContent = translations[lang].deselectAllBtn;
             applyBtn.textContent = translations[lang].applyBtn;
             downloadLink.textContent = translations[lang].downloadLink;
-            reorderInfo.textContent = translations[lang].reorderInfo;
             back.textContent = translations[lang].back;
+
+            // Update page indicator
+            updatePageIndicator();
 
             // Update remove buttons
             document.querySelectorAll('.remove-btn').forEach(btn => {
                 btn.textContent = translations[lang].remove;
             });
 
+            // Update page buttons
+            document.querySelectorAll('.remove-page-btn').forEach(btn => {
+                btn.textContent = translations[lang].removePage;
+            });
+            document.querySelectorAll('.keep-page-btn').forEach(btn => {
+                btn.textContent = translations[lang].keepPage;
+            });
+
             // Update page numbers
             document.querySelectorAll('.page-number').forEach((el, index) => {
-                const pageNum = pageOrder[index];
-                el.textContent = `${translations[lang].page} ${index + 1}`;
-
-                // Update tooltips for original page numbers
-                const badge = el.querySelector('.original-page-number');
-                if (badge) {
-                    badge.title = `${translations[lang].originalPage} ${pageNum}`;
-                }
+                el.textContent = `${translations[lang].page} ${index + currentPage}`;
             });
+
+            // Update summary box
+            updateSummaryBox();
+        }
+
+        // Update page indicator text
+        function updatePageIndicator() {
+            if (pdfDoc) {
+                const lastPage = Math.min(currentPage + pagesPerView - 1, pdfDoc.numPages);
+                pageIndicator.textContent = `${translations[currentLang].page} ${currentPage}-${lastPage} ${translations[currentLang].of} ${pdfDoc.numPages}`;
+            }
+        }
+
+        // Update summary box
+        function updateSummaryBox() {
+            if (pdfDoc) {
+                selectedCount.textContent = pagesToRemove.length;
+                totalCount.textContent = pdfDoc.numPages;
+
+                if (pagesToRemove.length > 0) {
+                    summaryBox.classList.remove('hidden');
+                } else {
+                    summaryBox.classList.add('hidden');
+                }
+            }
         }
 
         // Drag and drop events
@@ -454,8 +570,7 @@
             // Clear previous file
             selectedFile = file;
             fileList.innerHTML = '';
-            pageOrder = [];
-            originalPageOrder = [];
+            pagesToRemove = [];
 
             // Add file to the list
             addFileToList(file);
@@ -501,12 +616,12 @@
                 // Reset PDF viewer
                 pdfDoc = null;
                 pdfViewer.innerHTML = '';
-                pageOrder = [];
-                originalPageOrder = [];
+                pagesToRemove = [];
             });
 
             li.appendChild(removeBtn);
             fileList.appendChild(li);
+
         }
 
         // Load PDF file and render previews
@@ -518,16 +633,21 @@
                 pdfDoc = await loadingTask.promise;
                 console.log(`PDF loaded with ${pdfDoc.numPages} pages`);
 
-                // Init page order array (1-based, like PDF page numbers)
-                pageOrder = Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
-                originalPageOrder = [...pageOrder]; // Clone for reset functionality
+                // Init pages to remove array
+                pagesToRemove = [];
 
                 // Show the PDF viewer
                 viewerContainer.classList.remove('hidden');
-                summaryBox.classList.remove('hidden');
 
-                // Render all pages
+                // Render the first set of pages
+                currentPage = 1;
                 renderPages();
+
+                // Update page indicator
+                updatePageIndicator();
+
+                // Update summary box
+                updateSummaryBox();
 
             } catch (error) {
                 console.error('Error loading PDF:', error);
@@ -535,42 +655,36 @@
             }
         }
 
-        // Render all pages
+        // Render a set of pages
         async function renderPages() {
             // Clear current previews
             pdfViewer.innerHTML = '';
 
-            // Set grid layout based on number of pages
-            let columns = 3; // Default
-            if (pdfDoc.numPages > 12) {
-                columns = 4;
-            } else if (pdfDoc.numPages > 24) {
-                columns = 5;
-            }
-            pdfViewer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            const startPage = currentPage;
+            const endPage = Math.min(startPage + pagesPerView - 1, pdfDoc.numPages);
 
-            for (let i = 0; i < pageOrder.length; i++) {
-                const pageNum = pageOrder[i]; // Get the actual page number from the order array
-
+            for (let i = startPage; i <= endPage; i++) {
                 try {
+                    const page = await pdfDoc.getPage(i);
                     const pageContainer = document.createElement('div');
                     pageContainer.className = 'page-container';
-                    pageContainer.dataset.pageNum = pageNum;
-                    pageContainer.dataset.orderIndex = i;
-                    pageContainer.draggable = true;
+                    pageContainer.dataset.pageNum = i;
 
-                    // Add drag and drop event listeners
-                    pageContainer.addEventListener('dragstart', handleDragStart);
-                    pageContainer.addEventListener('dragend', handleDragEnd);
-                    pageContainer.addEventListener('dragover', handleDragOver);
-                    pageContainer.addEventListener('dragleave', handleDragLeave);
-                    pageContainer.addEventListener('drop', handleDrop);
+                    // Check if this page is marked for removal
+                    if (pagesToRemove.includes(i)) {
+                        pageContainer.classList.add('selected-for-remove');
+
+                        // Add X badge
+                        const selectionBadge = document.createElement('div');
+                        selectionBadge.className = 'selection-badge';
+                        selectionBadge.textContent = '✕';
+                        pageContainer.appendChild(selectionBadge);
+                    }
 
                     // Create page content container
                     const pageContent = document.createElement('div');
                     pageContent.className = 'page-content';
 
-                    const page = await pdfDoc.getPage(pageNum);
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
 
@@ -594,100 +708,193 @@
                     // Add page number
                     const pageNumber = document.createElement('div');
                     pageNumber.className = 'page-number';
-                    pageNumber.textContent = `${translations[currentLang].page} ${i + 1}`;
-
-                    // Add original page number badge (if reordered)
-                    if (i + 1 !== pageNum) {
-                        const originalNumBadge = document.createElement('div');
-                        originalNumBadge.className = 'original-page-number';
-                        originalNumBadge.title = `${translations[currentLang].originalPage} ${pageNum}`;
-                        originalNumBadge.textContent = pageNum;
-                        pageNumber.appendChild(originalNumBadge);
-                    }
-
+                    pageNumber.textContent = `${translations[currentLang].page} ${i}`;
                     pageContainer.appendChild(pageNumber);
 
+                    // Add page action buttons
+                    const pageTools = document.createElement('div');
+                    pageTools.className = 'page-tools';
+
+                    if (pagesToRemove.includes(i)) {
+                        // Keep button
+                        const keepBtn = document.createElement('button');
+                        keepBtn.className = 'keep-page-btn';
+                        keepBtn.textContent = translations[currentLang].keepPage;
+                        keepBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+
+                            // Get the current scroll position
+                            const scrollPosition = window.scrollY;
+
+                            // Keep the page (remove from pagesToRemove)
+                            togglePageRemoval(i);
+
+                            // Restore scroll position after a small delay to allow DOM updates
+                            setTimeout(() => {
+                                window.scrollTo({
+                                    top: scrollPosition,
+                                    behavior: 'auto'
+                                });
+                            }, 10);
+                        });
+                        pageTools.appendChild(keepBtn);
+                    } else {
+                        // Remove button
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-page-btn';
+                        removeBtn.textContent = translations[currentLang].removePage;
+                        removeBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+
+                            // Get the current scroll position
+                            const scrollPosition = window.scrollY;
+
+                            // Mark the page for removal
+                            togglePageRemoval(i);
+
+                            // Restore scroll position after a small delay to allow DOM updates
+                            setTimeout(() => {
+                                window.scrollTo({
+                                    top: scrollPosition,
+                                    behavior: 'auto'
+                                });
+                            }, 10);
+                        });
+                        pageTools.appendChild(removeBtn);
+                    }
+
+                    pageContainer.appendChild(pageTools);
                     pdfViewer.appendChild(pageContainer);
 
                 } catch (error) {
-                    console.error(`Error rendering page ${pageNum}:`, error);
+                    console.error(`Error rendering page ${i}:`, error);
                 }
             }
         }
 
-        // Drag and Drop Handlers
-        function handleDragStart(e) {
-            draggedElement = this;
-            this.classList.add('dragging');
-
-            // Set data for drag operation
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', this.dataset.orderIndex);
-
-            // Use a timeout to change opacity (workaround for drag image)
-            setTimeout(() => {
-                this.style.opacity = '0.4';
-            }, 0);
-        }
-
-        function handleDragEnd(e) {
-            this.classList.remove('dragging');
-            this.style.opacity = '1';
-
-            // Reset all containers
-            document.querySelectorAll('.page-container').forEach(container => {
-                container.classList.remove('drag-over');
-            });
-        }
-
-        function handleDragOver(e) {
-            if (e.preventDefault) {
-                e.preventDefault(); // Necessary to allow drop
+        // Toggle page removal selection
+        function togglePageRemoval(pageNum) {
+            const index = pagesToRemove.indexOf(pageNum);
+            if (index > -1) {
+                // Remove page from the array
+                pagesToRemove.splice(index, 1);
+            } else {
+                // Add page to the array
+                pagesToRemove.push(pageNum);
+                // Sort array to maintain page order
+                pagesToRemove.sort((a, b) => a - b);
             }
 
-            e.dataTransfer.dropEffect = 'move';
-            this.classList.add('drag-over');
+            // Update the current page view
+            const pageContainer = document.querySelector(`.page-container[data-page-num="${pageNum}"]`);
+            if (pageContainer) {
+                if (pagesToRemove.includes(pageNum)) {
+                    pageContainer.classList.add('selected-for-remove');
 
-            return false;
-        }
+                    // Add X badge if not exists
+                    if (!pageContainer.querySelector('.selection-badge')) {
+                        const selectionBadge = document.createElement('div');
+                        selectionBadge.className = 'selection-badge';
+                        selectionBadge.textContent = '✕';
+                        pageContainer.appendChild(selectionBadge);
+                    }
 
-        function handleDragLeave(e) {
-            this.classList.remove('drag-over');
-        }
+                    // Replace buttons
+                    const pageTools = pageContainer.querySelector('.page-tools');
+                    pageTools.innerHTML = '';
 
-        function handleDrop(e) {
-            e.stopPropagation(); // Stops browser from redirecting
+                    const keepBtn = document.createElement('button');
+                    keepBtn.className = 'keep-page-btn';
+                    keepBtn.textContent = translations[currentLang].keepPage;
+                    keepBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        togglePageRemoval(pageNum);
+                    });
+                    pageTools.appendChild(keepBtn);
 
-            if (draggedElement !== this) {
-                // Get the source and target indices
-                const sourceIndex = parseInt(draggedElement.dataset.orderIndex);
-                const targetIndex = parseInt(this.dataset.orderIndex);
+                } else {
+                    pageContainer.classList.remove('selected-for-remove');
 
-                // Reorder the pages
-                const pageToMove = pageOrder[sourceIndex];
+                    // Remove X badge if exists
+                    const selectionBadge = pageContainer.querySelector('.selection-badge');
+                    if (selectionBadge) {
+                        pageContainer.removeChild(selectionBadge);
+                    }
 
-                // Remove the page from its original position
-                pageOrder.splice(sourceIndex, 1);
+                    // Replace buttons
+                    const pageTools = pageContainer.querySelector('.page-tools');
+                    pageTools.innerHTML = '';
 
-                // Insert it at the new position
-                pageOrder.splice(targetIndex, 0, pageToMove);
-
-                // Re-render the pages
-                renderPages();
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-page-btn';
+                    removeBtn.textContent = translations[currentLang].removePage;
+                    removeBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        togglePageRemoval(pageNum);
+                    });
+                    pageTools.appendChild(removeBtn);
+                }
             }
 
-            this.classList.remove('drag-over');
-            return false;
+            // Update summary
+            updateSummaryBox();
         }
 
-        // Reset order button handler
-        resetOrderBtn.addEventListener('click', function(e) {
+        // Pagination handlers
+        prevPage.addEventListener('click', function(e) {
             e.preventDefault();
-            pageOrder = [...originalPageOrder]; // Reset to original order
-            renderPages();
+            if (currentPage > 1) {
+                currentPage = Math.max(1, currentPage - pagesPerView);
+                renderPages();
+                updatePageIndicator();
+                // Scroll to the top of the viewer
+                viewerContainer.scrollIntoView({ behavior: 'smooth' });
+            }
         });
 
-        // Apply changes button handler
+        nextPage.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (currentPage + pagesPerView <= pdfDoc.numPages) {
+                currentPage += pagesPerView;
+                renderPages();
+                updatePageIndicator();
+                // Scroll to the top of the viewer
+                viewerContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+
+        // Select all pages
+        selectAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Mark all pages for removal
+            pagesToRemove = [];
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                pagesToRemove.push(i);
+            }
+
+            // Re-render current view
+            renderPages();
+
+            // Update summary
+            updateSummaryBox();
+        });
+
+        // Deselect all pages
+        deselectAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Clear pages to remove
+            pagesToRemove = [];
+
+            // Re-render current view
+            renderPages();
+
+            // Update summary
+            updateSummaryBox();
+        });
+
+        // Apply changes (remove selected pages)
         applyBtn.addEventListener('click', function(e) {
             e.preventDefault();
 
@@ -696,27 +903,31 @@
                 return;
             }
 
-            // Check if the order has actually changed
-            const hasChanged = !pageOrder.every((page, index) => page === index + 1);
-
-            if (!hasChanged) {
-                showMessage('info', translations[currentLang].noChange);
+            // Check if any pages are selected for removal
+            if (pagesToRemove.length === 0) {
+                showMessage('info', translations[currentLang].noSelection);
                 return;
             }
 
-            // Process the PDF to reorder pages
-            processReordering();
+            // Can't remove all pages
+            if (pagesToRemove.length === pdfDoc.numPages) {
+                showMessage('error', 'Cannot remove all pages. At least one page must remain.');
+                return;
+            }
+
+            // Process the PDF to remove pages
+            processRemoval();
         });
 
-        // Process reordering of pages
-        async function processReordering() {
+        // Process removal of pages
+        async function processRemoval() {
             showMessage('info', translations[currentLang].processing);
             applyBtn.disabled = true;
 
             // Create FormData
             const formData = new FormData();
             formData.append('file', selectedFile);
-            formData.append('page_order', JSON.stringify(pageOrder));
+            formData.append('pages_to_remove', JSON.stringify(pagesToRemove));
 
             try {
                 const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
@@ -738,8 +949,8 @@
                     throw new Error('No API key returned');
                 }
 
-                // Send to backend
-                fetch('/myapp/backend/api/api_reorder_pages.php', {
+                // Send to server
+                fetch('/myapp/backend/api/api_remove_pages.php', {
                     method: 'POST',
                     headers: {
                         'X-API-KEY': apiKey,
@@ -762,11 +973,29 @@
                         if (data.success && data.result_id) {
                             showMessage('success', translations[currentLang].success);
 
-                            // Set download link
-                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                            resultContainer.classList.remove('hidden');
+                            // Modified download link handling with headers
+                            const downloadUrl = `/myapp/backend/api/api_download_pdf.php?id=${data.result_id}`;
+                            fetch(downloadUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'X-API-KEY': apiKey,
+                                    'X-Request-Source': 'frontend'
+                                },
+                                credentials: 'include'
+                            })
+                                .then(response => response.blob())
+                                .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    downloadLink.href = url;
+                                    downloadLink.setAttribute('download', 'removed_pages.pdf');
+                                    resultContainer.classList.remove('hidden');
+                                })
+                                .catch(error => {
+                                    console.error('Download error:', error);
+                                    showMessage('error', translations[currentLang].errorDownloading + error.message);
+                                });
 
-                            console.log('PDF pages reordering successful. Result ID:', data.result_id);
+                            console.log('PDF pages removal successful. Result ID:', data.result_id);
                         } else {
                             throw new Error(data.error || 'Unknown error');
                         }

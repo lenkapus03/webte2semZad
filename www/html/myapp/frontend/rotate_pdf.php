@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: /myapp/auth/login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -766,9 +773,27 @@
                         if (data.success && data.result_id) {
                             showMessage('success', translations[currentLang].success);
 
-                            // Set download link
-                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                            resultContainer.classList.remove('hidden');
+                            // Secure download implementation with headers
+                            const downloadUrl = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
+                            fetch(downloadUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'X-API-KEY': apiKey,
+                                    'X-Request-Source': 'frontend'
+                                },
+                                credentials: 'include'
+                            })
+                                .then(response => response.blob())
+                                .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    downloadLink.href = url;
+                                    downloadLink.setAttribute('download', 'rotated.pdf');
+                                    resultContainer.classList.remove('hidden');
+                                })
+                                .catch(error => {
+                                    console.error('Download error:', error);
+                                    showMessage('error', translations[currentLang].errorDownloading + error.message);
+                                });
 
                             console.log('PDF rotation successful. Result ID:', data.result_id);
                         } else {

@@ -23,6 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
+
 try {
     // Check for API key
     if (!isset($_SERVER['HTTP_X_API_KEY']) && !isset($_GET['api_key'])) {
@@ -78,7 +82,7 @@ try {
     // Log the download action
     if (function_exists('logUserAction')) {
         try {
-            logUserAction($username, 'api_download_pdf', 'api');
+            logUserAction($username, 'api_download_pdf', getRequestSource());
         } catch (Exception $e) {
             error_log("Failed to log download action: " . $e->getMessage());
             // Continue even if logging fails

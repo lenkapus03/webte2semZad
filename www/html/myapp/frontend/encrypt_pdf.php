@@ -1,9 +1,16 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: /myapp/auth/login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watermark PDF File</title>
+    <title>Password Protect PDF</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -34,34 +41,23 @@
             border-color: #4CAF50;
             background-color: #e8f5e9;
         }
-        #fileList {
-            list-style: none;
-            padding: 0;
-            margin: 20px 0;
-        }
-        #fileList li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .file-info {
             padding: 10px;
             border: 1px solid #ddd;
             margin-bottom: 10px;
             border-radius: 4px;
             background-color: #f5f5f5;
-            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .file-name {
             flex-grow: 1;
             margin-right: 10px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: calc(100% - 120px);
         }
         .file-item {
             display: flex;
             align-items: center;
-            min-width: 0;
         }
         .file-icon {
             margin-right: 10px;
@@ -73,7 +69,6 @@
             padding: 5px 10px;
             border-radius: 3px;
             cursor: pointer;
-            flex-shrink: 0;
         }
         #fileInput {
             display: none;
@@ -132,29 +127,53 @@
         .navigation a:hover {
             text-decoration: underline;
         }
-        .watermark-options {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-        }
-        .watermark-options label {
-            display: block;
-            margin-bottom: 10px;
-        }
-        .watermark-options input,
-        .watermark-options select {
+        .form-group {
             margin-bottom: 15px;
-            padding: 8px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .options-container {
+            background-color: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 20px 15px 10px 15px;
+            margin: 15px 0;
+        }
+        .password-container {
+            position: relative;
             width: 100%;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             box-sizing: border-box;
+        }
+        .password-info {
+            font-size: 0.9em;
+            color: #666;
+            margin: 5px 0 0 0;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #666;
+            width: 20px;
+            height: 20px;
         }
         @media (max-width: 600px) {
             .dropzone {
                 padding: 15px;
             }
-            #fileList li {
+            .file-info {
                 flex-direction: column;
                 align-items: flex-start;
             }
@@ -162,15 +181,6 @@
                 margin-top: 10px;
                 align-self: flex-end;
             }
-        }
-        .color-preview {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            vertical-align: middle;
-            margin-left: 10px;
         }
     </style>
 </head>
@@ -183,56 +193,45 @@
     <a href="#" id="lang-en">English</a> | <a href="#" id="lang-sk">Slovensky</a>
 </div>
 
-<h1 id="title">Watermark PDF File</h1>
+<h1 id="title">Password Protect PDF</h1>
 
 <div class="dropzone" id="dropzone">
-    <p id="dropText">Drag and drop a PDF file here, or click to select file</p>
+    <p id="dropText">Drag and drop a PDF file here, or click to select a file</p>
     <input type="file" id="fileInput" accept=".pdf">
     <button class="btn btn-secondary" id="selectFileBtn">Select File</button>
 </div>
 
-<ul id="fileList"></ul>
+<div id="fileInfo" class="hidden"></div>
 
-<div class="watermark-options">
-    <h3>Watermark Settings</h3>
-    <label for="watermarkText">Watermark Text:</label>
-    <input type="text" id="watermarkText" placeholder="Enter watermark text" value="CONFIDENTIAL">
-
-    <label for="watermarkPosition">Position:</label>
-    <select id="watermarkPosition">
-        <option value="center">Center</option>
-        <option value="top-left">Top Left</option>
-        <option value="top-right">Top Right</option>
-        <option value="bottom-left">Bottom Left</option>
-        <option value="bottom-right">Bottom Right</option>
-    </select>
-
-    <label for="watermarkOpacity">Opacity (0-100%):</label>
-    <input type="range" id="watermarkOpacity" min="0" max="100" value="50">
-    <span id="opacityValue">50%</span>
-
-    <label for="watermarkColor">Color:</label>
-    <div style="display: flex; align-items: center; gap: 10px;">
-        <input type="color" id="watermarkColor" value="#000000">
-        <span id="colorHexValue">#000000</span>
-        <div class="color-preview" id="colorPreview" style="background-color: #000000;"></div>
+<div class="options-container hidden" id="optionsContainer">
+    <div class="form-group">
+        <label for="password" id="passwordLabel">Set PDF Password:</label>
+        <div class="password-container">
+            <input type="password" id="password">
+            <div class="password-toggle" id="togglePassword">
+                <!-- Eye Icon (visible when password is hidden) -->
+                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <!-- Crossed Eye Icon (visible when password is shown) -->
+                <svg id="eyeIconCrossed" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+            </div>
+        </div>
+        <p class="password-info" id="passwordInfo">This password will be required to open the PDF file</p>
     </div>
-
-    <label for="watermarkFontSize">Font Size:</label>
-    <input type="number" id="watermarkFontSize" min="10" max="72" value="36">
-
-    <label for="watermarkRotation">Rotation Angle (0-360°):</label>
-    <input type="range" id="watermarkRotation" min="0" max="360" value="45">
-    <span id="rotationValue">45°</span>
 </div>
 
-<div id="actions">
-    <button class="btn" id="watermarkBtn" disabled>Add Watermark to PDF</button>
+<div id="actions" class="hidden">
+    <button class="btn" id="encryptPdfBtn">Protect PDF</button>
 </div>
 
 <div id="messageContainer" class="hidden"></div>
 <div id="resultContainer" class="hidden">
-    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Watermarked PDF</a>
+    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Protected PDF</a>
 </div>
 
 <script>
@@ -240,45 +239,41 @@
         // Translation object
         const translations = {
             'en': {
-                'title': 'Watermark PDF File',
-                'dropText': 'Drag and drop a PDF file here, or click to select file',
+                'title': 'Password Protect PDF',
+                'dropText': 'Drag and drop a PDF file here, or click to select a file',
                 'selectFile': 'Select File',
-                'watermarkBtn': 'Add Watermark to PDF',
-                'downloadLink': 'Download Watermarked PDF',
-                'processing': 'Adding watermark to PDF file...',
-                'success': 'Watermark was successfully added to PDF!',
-                'errorNoFile': 'Please select a PDF file to watermark.',
+                'encryptPdfBtn': 'Protect PDF',
+                'downloadLink': 'Download Protected PDF',
+                'processing': 'Adding password protection to PDF...',
+                'success': 'PDF file was successfully password protected!',
+                'errorNoFile': 'Please select a PDF file first.',
+                'errorNoPassword': 'Please enter a password.',
                 'errorUpload': 'Error uploading file: ',
-                'errorWatermark': 'Error adding watermark to PDF: ',
+                'errorProcessing': 'Error protecting PDF: ',
                 'remove': 'Remove',
-                'watermarkSettings': 'Watermark Settings',
-                'watermarkText': 'Watermark Text',
-                'position': 'Position',
-                'opacity': 'Opacity',
-                'color': 'Color',
-                'fontSize': 'Font Size',
-                'rotation': 'Rotation Angle',
+                'optionsTitle': 'Set Password',
+                'passwordLabel': 'PDF Password:',
+                'passwordInfo': 'This password will be required to open the PDF file',
+                'fileSelected': 'Selected file:',
                 'back': '← Back to Dashboard'
             },
             'sk': {
-                'title': 'Pridať vodoznak do PDF',
+                'title': 'Zabezpečiť PDF heslom',
                 'dropText': 'Pretiahnite PDF súbor sem, alebo kliknite pre výber súboru',
                 'selectFile': 'Vybrať súbor',
-                'watermarkBtn': 'Pridať vodoznak do PDF',
-                'downloadLink': 'Stiahnuť PDF s vodoznakom',
-                'processing': 'Pridávanie vodoznaku do PDF súboru...',
-                'success': 'Vodoznak bol úspešne pridaný do PDF!',
-                'errorNoFile': 'Vyberte PDF súbor pre pridanie vodoznaku.',
+                'encryptPdfBtn': 'Zabezpečiť PDF',
+                'downloadLink': 'Stiahnuť zabezpečený PDF',
+                'processing': 'Pridávanie ochrany heslom do PDF...',
+                'success': 'PDF súbor bol úspešne zabezpečený heslom!',
+                'errorNoFile': 'Najskôr vyberte PDF súbor.',
+                'errorNoPassword': 'Zadajte heslo.',
                 'errorUpload': 'Chyba pri nahrávaní súboru: ',
-                'errorWatermark': 'Chyba pri pridávaní vodoznaku do PDF: ',
+                'errorProcessing': 'Chyba pri zabezpečovaní PDF: ',
                 'remove': 'Odstrániť',
-                'watermarkSettings': 'Nastavenia vodoznaku',
-                'watermarkText': 'Text vodoznaku',
-                'position': 'Pozícia',
-                'opacity': 'Priehľadnosť',
-                'color': 'Farba',
-                'fontSize': 'Veľkosť písma',
-                'rotation': 'Uhol otočenia',
+                'optionsTitle': 'Nastaviť heslo',
+                'passwordLabel': 'Heslo PDF:',
+                'passwordInfo': 'Toto heslo bude potrebné na otvorenie PDF súboru',
+                'fileSelected': 'Vybraný súbor:',
                 'back': '← Späť na prehľad'
             }
         };
@@ -290,8 +285,10 @@
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
         const selectFileBtn = document.getElementById('selectFileBtn');
-        const fileList = document.getElementById('fileList');
-        const watermarkBtn = document.getElementById('watermarkBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const actions = document.getElementById('actions');
+        const encryptPdfBtn = document.getElementById('encryptPdfBtn');
         const messageContainer = document.getElementById('messageContainer');
         const resultContainer = document.getElementById('resultContainer');
         const downloadLink = document.getElementById('downloadLink');
@@ -299,20 +296,29 @@
         const dropText = document.getElementById('dropText');
         const langEn = document.getElementById('lang-en');
         const langSk = document.getElementById('lang-sk');
-        const watermarkText = document.getElementById('watermarkText');
-        const watermarkPosition = document.getElementById('watermarkPosition');
-        const watermarkOpacity = document.getElementById('watermarkOpacity');
-        const opacityValue = document.getElementById('opacityValue');
-        const watermarkColor = document.getElementById('watermarkColor');
-        const watermarkFontSize = document.getElementById('watermarkFontSize');
-        const colorHexValue = document.getElementById('colorHexValue');
-        const colorPreview = document.getElementById('colorPreview');
-        const watermarkRotation = document.getElementById('watermarkRotation');
-        const rotationValue = document.getElementById('rotationValue');
+        const passwordLabel = document.getElementById('passwordLabel');
+        const passwordInfo = document.getElementById('passwordInfo');
+        const togglePassword = document.getElementById('togglePassword');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const eyeIconCrossed = document.getElementById('eyeIconCrossed');
         const back = document.getElementById('back');
 
-        // Selected file
+        // File variable to store the selected file
         let selectedFile = null;
+
+        // Password toggle functionality
+        togglePassword.addEventListener('click', function() {
+            const passwordField = document.getElementById('password');
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                eyeIcon.classList.add('hidden');
+                eyeIconCrossed.classList.remove('hidden');
+            } else {
+                passwordField.type = 'password';
+                eyeIcon.classList.remove('hidden');
+                eyeIconCrossed.classList.add('hidden');
+            }
+        });
 
         // Language switcher event listeners
         langEn.addEventListener('click', function(e) {
@@ -325,44 +331,20 @@
             setLanguage('sk');
         });
 
-        // Update opacity value display
-        watermarkOpacity.addEventListener('input', function() {
-            opacityValue.textContent = `${this.value}%`;
-        });
-
-        watermarkColor.addEventListener('input', function() {
-            colorHexValue.textContent = this.value;
-            colorPreview.style.backgroundColor = this.value;
-        });
-
-        watermarkRotation.addEventListener('input', function() {
-            rotationValue.textContent = `${this.value}°`;
-        });
-
         // Function to set the language
         function setLanguage(lang) {
             currentLang = lang;
             title.textContent = translations[lang].title;
             dropText.textContent = translations[lang].dropText;
             selectFileBtn.textContent = translations[lang].selectFile;
-            watermarkBtn.textContent = translations[lang].watermarkBtn;
+            encryptPdfBtn.textContent = translations[lang].encryptPdfBtn;
             downloadLink.textContent = translations[lang].downloadLink;
+            passwordLabel.textContent = translations[lang].passwordLabel;
+            passwordInfo.textContent = translations[lang].passwordInfo;
             back.textContent = translations[lang].back;
 
-            // Update watermark settings labels
-            document.querySelector('.watermark-options h3').textContent = translations[lang].watermarkSettings;
-            document.querySelector('label[for="watermarkText"]').textContent = translations[lang].watermarkText;
-            document.querySelector('label[for="watermarkPosition"]').textContent = translations[lang].position;
-            document.querySelector('label[for="watermarkOpacity"]').textContent = translations[lang].opacity;
-            document.querySelector('label[for="watermarkColor"]').textContent = translations[lang].color;
-            document.querySelector('label[for="watermarkFontSize"]').textContent = translations[lang].fontSize;
-
-            // Update remove buttons
-            document.querySelectorAll('.remove-btn').forEach(btn => {
-                btn.textContent = translations[lang].remove;
-            });
-
-            document.querySelector('label[for="watermarkRotation"]').textContent = translations[lang].rotation;
+            // Update any dynamic content that might exist
+            updateFileInfo();
         }
 
         // Drag and drop events
@@ -413,80 +395,61 @@
                 return;
             }
 
-            // Clear previous file
+            // Store the file
             selectedFile = file;
-            fileList.innerHTML = '';
 
-            // Add file to the list
-            addFileToList(file);
-
-            // Update button state
-            updateWatermarkButton();
-
-            // Hide any previous messages and results
-            messageContainer.classList.add('hidden');
-            resultContainer.classList.add('hidden');
+            // Update UI
+            updateFileInfo();
+            optionsContainer.classList.remove('hidden');
+            actions.classList.remove('hidden');
         }
 
-        // Add a file to the list
-        function addFileToList(file) {
-            const li = document.createElement('li');
+        // Update file info display
+        function updateFileInfo() {
+            if (selectedFile) {
+                fileInfo.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-item">
+                            <div class="file-icon">📄</div>
+                            <div class="file-name">${translations[currentLang].fileSelected} ${selectedFile.name}</div>
+                        </div>
+                        <button class="remove-btn">${translations[currentLang].remove}</button>
+                    </div>
+                `;
+                fileInfo.classList.remove('hidden');
 
-            const fileItem = document.createElement('div');
-            fileItem.className = 'file-item';
-
-            const fileIcon = document.createElement('div');
-            fileIcon.className = 'file-icon';
-            fileIcon.innerHTML = '📄';
-            fileItem.appendChild(fileIcon);
-
-            const fileName = document.createElement('div');
-            fileName.className = 'file-name';
-            fileName.textContent = file.name;
-            fileName.title = file.name; // Show full name on hover
-            fileItem.appendChild(fileName);
-
-            li.appendChild(fileItem);
-
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'remove-btn';
-            removeBtn.textContent = translations[currentLang].remove;
-            removeBtn.addEventListener('click', function() {
-                selectedFile = null;
-                fileList.removeChild(li);
-                updateWatermarkButton();
-            });
-
-            li.appendChild(removeBtn);
-            fileList.appendChild(li);
+                // Add remove button event
+                document.querySelector('.remove-btn').addEventListener('click', function() {
+                    selectedFile = null;
+                    fileInfo.classList.add('hidden');
+                    optionsContainer.classList.add('hidden');
+                    actions.classList.add('hidden');
+                    resultContainer.classList.add('hidden');
+                });
+            } else {
+                fileInfo.classList.add('hidden');
+            }
         }
 
-        // Update the watermark button state
-        function updateWatermarkButton() {
-            watermarkBtn.disabled = !selectedFile || !watermarkText.value.trim();
-        }
+        // Encrypt PDF button click event
+        encryptPdfBtn.addEventListener('click', encryptPdf);
 
-        // Update button when watermark text changes
-        watermarkText.addEventListener('input', updateWatermarkButton);
-
-        // Watermark button click event
-        watermarkBtn.addEventListener('click', addWatermark);
-
-        async function addWatermark() {
+        async function encryptPdf() {
             if (!selectedFile) {
                 showMessage('error', translations[currentLang].errorNoFile);
                 return;
             }
 
-            if (!watermarkText.value.trim()) {
-                showMessage('error', translations[currentLang].watermarkText + ' is required');
+            const password = document.getElementById('password').value;
+            if (!password) {
+                showMessage('error', translations[currentLang].errorNoPassword);
                 return;
             }
 
             showMessage('info', translations[currentLang].processing);
 
-            // Disable watermark button
-            watermarkBtn.disabled = true;
+            // Disable button while processing
+            encryptPdfBtn.disabled = true;
 
             // Create a FormData instance
             const formData = new FormData();
@@ -494,16 +457,8 @@
             // Add file to FormData
             formData.append('file', selectedFile);
 
-            // Add watermark settings
-            formData.append('watermark_text', watermarkText.value);
-            formData.append('position', watermarkPosition.value);
-            formData.append('opacity', watermarkOpacity.value / 100); // Convert to 0-1 range
-            formData.append('color', watermarkColor.value);
-            formData.append('font_size', watermarkFontSize.value);
-            formData.append('rotation', watermarkRotation.value);
-
-            // Log for debugging
-            console.log('Sending request to add watermark to PDF...');
+            // Add password to FormData
+            formData.append('password', password);
 
             try {
                 const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
@@ -526,7 +481,7 @@
                 }
 
                 // Send request to the server
-                fetch('/myapp/backend/api/api_watermark_pdf.php', {
+                fetch('/myapp/backend/api/api_encrypt_pdf.php', {
                     method: 'POST',
                     headers: {
                         'X-API-KEY': apiKey,
@@ -556,24 +511,45 @@
                         if (data.success && data.result_id) {
                             showMessage('success', translations[currentLang].success);
 
-                            // Set download link to the direct PDF download endpoint
-                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                            resultContainer.classList.remove('hidden');
+                            // Modified download link handling - now with headers
+                            const downloadUrl = `/myapp/backend/api/api_download_pdf.php?id=${data.result_id}`;
+                            fetch(downloadUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'X-API-KEY': apiKey,
+                                    'X-Request-Source': 'frontend'
+                                },
+                                credentials: 'include'
+                            })
+                                .then(response => response.blob())
+                                .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    downloadLink.href = url;
+                                    downloadLink.setAttribute('download', 'encrypted.pdf');
+                                    resultContainer.classList.remove('hidden');
+                                })
+                                .catch(error => {
+                                    console.error('Download error:', error);
+                                    showMessage('error', translations[currentLang].errorDownloading + error.message);
+                                });
 
-                            console.log('Watermark added successfully. Result ID:', data.result_id);
+                            console.log('PDF encryption successful. Result ID:', data.result_id);
                         } else {
                             throw new Error(data.error || 'Unknown error');
                         }
                     })
                     .catch(error => {
-                        console.error('Watermark Error:', error);
-                        showMessage('error', translations[currentLang].errorWatermark + error.message);
+                        console.error('PDF Encryption Error:', error);
+                        showMessage('error', translations[currentLang].errorProcessing + error.message);
                     })
+                    .finally(() => {
+                        encryptPdfBtn.disabled = false;
+                    });
             } catch (error) {
                 console.error('PDF Processing Error:', error);
                 showMessage('error', translations[currentLang].errorMerge + error.message);
             } finally {
-                watermarkBtn.disabled = false;
+                encryptPdfBtn.disabled = false;
             }
         }
 

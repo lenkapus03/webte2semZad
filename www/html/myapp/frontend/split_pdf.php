@@ -1,9 +1,16 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: /myapp/auth/login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Protect PDF</title>
+    <title>Split PDF File</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -34,17 +41,22 @@
             border-color: #4CAF50;
             background-color: #e8f5e9;
         }
-        .file-info {
+        #fileList {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        #fileList li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             padding: 10px;
             border: 1px solid #ddd;
             margin-bottom: 10px;
             border-radius: 4px;
             background-color: #f5f5f5;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        .file-name {
+        #fileList .file-name {
             flex-grow: 1;
             margin-right: 10px;
         }
@@ -120,53 +132,11 @@
         .navigation a:hover {
             text-decoration: underline;
         }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .options-container {
-            background-color: #f8f8f8;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            padding: 20px 15px 10px 15px;
-            margin: 15px 0;
-        }
-        .password-container {
-            position: relative;
-            width: 100%;
-        }
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .password-info {
-            font-size: 0.9em;
-            color: #666;
-            margin: 5px 0 0 0;
-        }
-        .password-toggle {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #666;
-            width: 20px;
-            height: 20px;
-        }
         @media (max-width: 600px) {
             .dropzone {
                 padding: 15px;
             }
-            .file-info {
+            #fileList li {
                 flex-direction: column;
                 align-items: flex-start;
             }
@@ -186,45 +156,23 @@
     <a href="#" id="lang-en">English</a> | <a href="#" id="lang-sk">Slovensky</a>
 </div>
 
-<h1 id="title">Password Protect PDF</h1>
+<h1 id="title">Split PDF File</h1>
 
 <div class="dropzone" id="dropzone">
-    <p id="dropText">Drag and drop a PDF file here, or click to select a file</p>
+    <p id="dropText">Drag and drop a PDF file here, or click to select file</p>
     <input type="file" id="fileInput" accept=".pdf">
     <button class="btn btn-secondary" id="selectFileBtn">Select File</button>
 </div>
 
-<div id="fileInfo" class="hidden"></div>
+<ul id="fileList"></ul>
 
-<div class="options-container hidden" id="optionsContainer">
-    <div class="form-group">
-        <label for="password" id="passwordLabel">Set PDF Password:</label>
-        <div class="password-container">
-            <input type="password" id="password">
-            <div class="password-toggle" id="togglePassword">
-                <!-- Eye Icon (visible when password is hidden) -->
-                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <!-- Crossed Eye Icon (visible when password is shown) -->
-                <svg id="eyeIconCrossed" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-            </div>
-        </div>
-        <p class="password-info" id="passwordInfo">This password will be required to open the PDF file</p>
-    </div>
-</div>
-
-<div id="actions" class="hidden">
-    <button class="btn" id="encryptPdfBtn">Protect PDF</button>
+<div id="actions">
+    <button class="btn" id="splitBtn" disabled>Split PDF File</button>
 </div>
 
 <div id="messageContainer" class="hidden"></div>
 <div id="resultContainer" class="hidden">
-    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Protected PDF</a>
+    <a href="#" id="downloadLink" class="btn btn-secondary" target="_blank">Download Split PDF Files (ZIP)</a>
 </div>
 
 <script>
@@ -232,41 +180,31 @@
         // Translation object
         const translations = {
             'en': {
-                'title': 'Password Protect PDF',
-                'dropText': 'Drag and drop a PDF file here, or click to select a file',
+                'title': 'Split PDF File',
+                'dropText': 'Drag and drop a PDF file here, or click to select file',
                 'selectFile': 'Select File',
-                'encryptPdfBtn': 'Protect PDF',
-                'downloadLink': 'Download Protected PDF',
-                'processing': 'Adding password protection to PDF...',
-                'success': 'PDF file was successfully password protected!',
-                'errorNoFile': 'Please select a PDF file first.',
-                'errorNoPassword': 'Please enter a password.',
+                'splitBtn': 'Split PDF File',
+                'downloadLink': 'Download Split PDF Files (ZIP)',
+                'splitting': 'Splitting PDF file...',
+                'success': 'PDF file was successfully split!',
+                'errorNoFile': 'Please select a PDF file to split.',
                 'errorUpload': 'Error uploading file: ',
-                'errorProcessing': 'Error protecting PDF: ',
+                'errorSplit': 'Error splitting PDF file: ',
                 'remove': 'Remove',
-                'optionsTitle': 'Set Password',
-                'passwordLabel': 'PDF Password:',
-                'passwordInfo': 'This password will be required to open the PDF file',
-                'fileSelected': 'Selected file:',
                 'back': '← Back to Dashboard'
             },
             'sk': {
-                'title': 'Zabezpečiť PDF heslom',
+                'title': 'Rozdelenie PDF súboru',
                 'dropText': 'Pretiahnite PDF súbor sem, alebo kliknite pre výber súboru',
                 'selectFile': 'Vybrať súbor',
-                'encryptPdfBtn': 'Zabezpečiť PDF',
-                'downloadLink': 'Stiahnuť zabezpečený PDF',
-                'processing': 'Pridávanie ochrany heslom do PDF...',
-                'success': 'PDF súbor bol úspešne zabezpečený heslom!',
-                'errorNoFile': 'Najskôr vyberte PDF súbor.',
-                'errorNoPassword': 'Zadajte heslo.',
+                'splitBtn': 'Rozdeliť PDF súbor',
+                'downloadLink': 'Stiahnuť rozdelené PDF súbory (ZIP)',
+                'splitting': 'Rozdeľovanie PDF súboru...',
+                'success': 'PDF súbor bol úspešne rozdelený!',
+                'errorNoFile': 'Vyberte PDF súbor na rozdelenie.',
                 'errorUpload': 'Chyba pri nahrávaní súboru: ',
-                'errorProcessing': 'Chyba pri zabezpečovaní PDF: ',
+                'errorSplit': 'Chyba pri rozdeľovaní PDF súboru: ',
                 'remove': 'Odstrániť',
-                'optionsTitle': 'Nastaviť heslo',
-                'passwordLabel': 'Heslo PDF:',
-                'passwordInfo': 'Toto heslo bude potrebné na otvorenie PDF súboru',
-                'fileSelected': 'Vybraný súbor:',
                 'back': '← Späť na prehľad'
             }
         };
@@ -278,10 +216,8 @@
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
         const selectFileBtn = document.getElementById('selectFileBtn');
-        const fileInfo = document.getElementById('fileInfo');
-        const optionsContainer = document.getElementById('optionsContainer');
-        const actions = document.getElementById('actions');
-        const encryptPdfBtn = document.getElementById('encryptPdfBtn');
+        const fileList = document.getElementById('fileList');
+        const splitBtn = document.getElementById('splitBtn');
         const messageContainer = document.getElementById('messageContainer');
         const resultContainer = document.getElementById('resultContainer');
         const downloadLink = document.getElementById('downloadLink');
@@ -289,29 +225,10 @@
         const dropText = document.getElementById('dropText');
         const langEn = document.getElementById('lang-en');
         const langSk = document.getElementById('lang-sk');
-        const passwordLabel = document.getElementById('passwordLabel');
-        const passwordInfo = document.getElementById('passwordInfo');
-        const togglePassword = document.getElementById('togglePassword');
-        const eyeIcon = document.getElementById('eyeIcon');
-        const eyeIconCrossed = document.getElementById('eyeIconCrossed');
         const back = document.getElementById('back');
 
-        // File variable to store the selected file
+        // Selected file
         let selectedFile = null;
-
-        // Password toggle functionality
-        togglePassword.addEventListener('click', function() {
-            const passwordField = document.getElementById('password');
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                eyeIcon.classList.add('hidden');
-                eyeIconCrossed.classList.remove('hidden');
-            } else {
-                passwordField.type = 'password';
-                eyeIcon.classList.remove('hidden');
-                eyeIconCrossed.classList.add('hidden');
-            }
-        });
 
         // Language switcher event listeners
         langEn.addEventListener('click', function(e) {
@@ -330,14 +247,14 @@
             title.textContent = translations[lang].title;
             dropText.textContent = translations[lang].dropText;
             selectFileBtn.textContent = translations[lang].selectFile;
-            encryptPdfBtn.textContent = translations[lang].encryptPdfBtn;
+            splitBtn.textContent = translations[lang].splitBtn;
             downloadLink.textContent = translations[lang].downloadLink;
-            passwordLabel.textContent = translations[lang].passwordLabel;
-            passwordInfo.textContent = translations[lang].passwordInfo;
             back.textContent = translations[lang].back;
 
-            // Update any dynamic content that might exist
-            updateFileInfo();
+            // Update remove buttons
+            document.querySelectorAll('.remove-btn').forEach(btn => {
+                btn.textContent = translations[lang].remove;
+            });
         }
 
         // Drag and drop events
@@ -388,61 +305,75 @@
                 return;
             }
 
-            // Store the file
+            // Clear previous file
             selectedFile = file;
+            fileList.innerHTML = '';
 
-            // Update UI
-            updateFileInfo();
-            optionsContainer.classList.remove('hidden');
-            actions.classList.remove('hidden');
+            // Add file to the list
+            addFileToList(file);
+
+            // Update button state
+            updateSplitButton();
+
+            // Hide any previous messages and results
+            messageContainer.classList.add('hidden');
+            resultContainer.classList.add('hidden');
         }
 
-        // Update file info display
-        function updateFileInfo() {
-            if (selectedFile) {
-                fileInfo.innerHTML = `
-                    <div class="file-info">
-                        <div class="file-item">
-                            <div class="file-icon">📄</div>
-                            <div class="file-name">${translations[currentLang].fileSelected} ${selectedFile.name}</div>
-                        </div>
-                        <button class="remove-btn">${translations[currentLang].remove}</button>
-                    </div>
-                `;
-                fileInfo.classList.remove('hidden');
+        // Add a file to the list
+        function addFileToList(file) {
+            const li = document.createElement('li');
 
-                // Add remove button event
-                document.querySelector('.remove-btn').addEventListener('click', function() {
-                    selectedFile = null;
-                    fileInfo.classList.add('hidden');
-                    optionsContainer.classList.add('hidden');
-                    actions.classList.add('hidden');
-                    resultContainer.classList.add('hidden');
-                });
-            } else {
-                fileInfo.classList.add('hidden');
-            }
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+
+            const fileIcon = document.createElement('div');
+            fileIcon.className = 'file-icon';
+            fileIcon.innerHTML = '📄'; // File icon
+            fileItem.appendChild(fileIcon);
+
+            const fileName = document.createElement('div');
+            fileName.className = 'file-name';
+            fileName.textContent = file.name;
+            fileItem.appendChild(fileName);
+
+            li.appendChild(fileItem);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = translations[currentLang].remove;
+            removeBtn.addEventListener('click', function() {
+                // Remove file
+                selectedFile = null;
+                // Remove from list
+                fileList.removeChild(li);
+                // Update button state
+                updateSplitButton();
+            });
+
+            li.appendChild(removeBtn);
+            fileList.appendChild(li);
+
         }
 
-        // Encrypt PDF button click event
-        encryptPdfBtn.addEventListener('click', encryptPdf);
+        // Update the split button state
+        function updateSplitButton() {
+            splitBtn.disabled = !selectedFile;
+        }
 
-        async function encryptPdf() {
+        // Split button click event
+        splitBtn.addEventListener('click', splitPDF);
+
+        async function splitPDF() {
             if (!selectedFile) {
                 showMessage('error', translations[currentLang].errorNoFile);
                 return;
             }
 
-            const password = document.getElementById('password').value;
-            if (!password) {
-                showMessage('error', translations[currentLang].errorNoPassword);
-                return;
-            }
+            showMessage('info', translations[currentLang].splitting);
 
-            showMessage('info', translations[currentLang].processing);
-
-            // Disable button while processing
-            encryptPdfBtn.disabled = true;
+            // Disable split button
+            splitBtn.disabled = true;
 
             // Create a FormData instance
             const formData = new FormData();
@@ -450,13 +381,14 @@
             // Add file to FormData
             formData.append('file', selectedFile);
 
-            // Add password to FormData
-            formData.append('password', password);
+            // Log for debugging
+            console.log('Sending request to split PDF...');
 
             try {
                 const keyResponse = await fetch('/myapp/backend/api/api_api_key.php', {
                     credentials: 'include'
                 });
+                console.log('API key response status:', keyResponse.status);
                 const responseText = await keyResponse.text();
                 let keyData;
                 try {
@@ -472,9 +404,7 @@
                 if (!apiKey) {
                     throw new Error('No API key returned');
                 }
-
-                // Send request to the server
-                fetch('/myapp/backend/api/api_encrypt_pdf.php', {
+                fetch('/myapp/backend/api/api_split_pdf.php', {
                     method: 'POST',
                     headers: {
                         'X-API-KEY': apiKey,
@@ -504,24 +434,53 @@
                         if (data.success && data.result_id) {
                             showMessage('success', translations[currentLang].success);
 
-                            // Set download link
-                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                            resultContainer.classList.remove('hidden');
+                            // Secure download implementation with headers
+                            const downloadUrl = `/myapp/backend/api/api_zip_download_pdf.php?id=${data.result_id}`;
+                            fetch(downloadUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'X-API-KEY': apiKey,
+                                    'X-Request-Source': 'frontend'
+                                },
+                                credentials: 'include'
+                            })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`Download failed with status ${response.status}`);
+                                    }
+                                    return response.blob();
+                                })
+                                .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'split_pages.zip';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    window.URL.revokeObjectURL(url);
+                                    resultContainer.classList.remove('hidden');
+                                })
 
-                            console.log('PDF encryption successful. Result ID:', data.result_id);
+                                .catch(error => {
+                                    console.error('Download error:', error);
+                                    showMessage('error', translations[currentLang].errorDownloading + error.message);
+                                });
+
+                            console.log('PDF split successful. Result ID:', data.result_id);
                         } else {
                             throw new Error(data.error || 'Unknown error');
                         }
                     })
                     .catch(error => {
-                        console.error('PDF Encryption Error:', error);
-                        showMessage('error', translations[currentLang].errorProcessing + error.message);
+                        console.error('PDF Split Error:', error);
+                        showMessage('error', translations[currentLang].errorSplit + error.message);
                     })
             } catch (error) {
-                console.error('PDF Processing Error:', error);
+                console.error('PDF Split Error:', error);
                 showMessage('error', translations[currentLang].errorMerge + error.message);
             } finally {
-                encryptPdfBtn.disabled = false;
+                splitBtn.disabled = false;
             }
         }
 

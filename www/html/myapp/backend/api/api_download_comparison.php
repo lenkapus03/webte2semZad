@@ -23,6 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 
+function getRequestSource() {
+    return $_SERVER['HTTP_X_REQUEST_SOURCE'] ?? 'backend';
+}
+
 function debug_log($message, $data = null) {
     global $debug;
     if ($debug) {
@@ -228,7 +232,7 @@ try {
         date('Y-m-d H:i:s', $resultData['timestamp'] ?? time()) . '</div>';
 
     // Log user action
-    logUserAction($username, 'download_comparison', 'api');
+    logUserAction($username, 'download_comparison', getRequestSource());
     debug_log("Generating PDF");
 
     try {
