@@ -1,45 +1,9 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../../../config.php';;
-require_once __DIR__ . '/../backend/auth/api_key.php';;
-
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-
-    try {
-        $validation = validateUsernamePassword($username, $password);
-        if (!$validation['valid']) {
-            throw new Exception(implode("<br>", $validation['errors']));
-        }
-
-        $pdo = getPDO();
-
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch();
-
-        if (!$user || !password_verify($password, $user['password'])) {
-            throw new Exception('Invalid username or password.');
-        }
-
-        $_SESSION = [
-            'username' => $user['username'],
-            'role' => $user['role'],
-            'api_key' => $user['api_key']
-        ];
-
-        logUserAction($user['username'], 'login');
-
-        header("Location: /myapp/index.php");
-        exit;
-
-    } catch (Exception $e) {
-        $error = $e->getMessage();
-    }
+if (isset($_SESSION['username'])) {
+    header("Location: ../index.php");
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -119,6 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
         }
 
+        .error-message {
+            margin: 5px 0;
+            padding: 5px;
+        }
+
         .link {
             text-align: center;
             margin-top: 15px;
@@ -135,25 +104,146 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <h2><i class="fas fa-lock"></i> Login</h2>
-        <?php if (!empty($error)): ?>
-            <div class="error"><?= $error ?></div>
-        <?php endif; ?>
-        <form method="post" action="">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" name="username" id="username" required />
-            </div>
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" name="password" id="password" required />
-            </div>
-            <button type="submit" class="btn">Login</button>
-        </form>
-        <div class="link">
-            Don't have an account? <a href="register.php">Register</a>
+<div class="login-card">
+    <h2><i class="fas fa-lock"></i> Login</h2>
+    <div id="errorMessages" class="error"></div>
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" name="username" id="username" required />
         </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" required />
+        </div>
+        <button type="submit" class="btn">Login</button>
+    </form>
+    <div class="link">
+        Don't have an account? <a href="register.php">Register</a>
     </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const loginForm = document.querySelector("#loginForm");
+        const errorMessagesDiv = document.querySelector("#errorMessages");
+
+        if (!loginForm || !errorMessagesDiv) {
+            console.error("Required elements not found in the DOM");
+            return;
+        }
+
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            errorMessagesDiv.innerHTML = '';
+            errorMessagesDiv.style.display = 'none';
+
+            const formData = new FormData(loginForm);
+            const username = formData.get("username")?.toString().trim() || '';
+            const password = formData.get("password")?.toString().trim() || '';
+
+            const validationErrors = validateCredentials(username, password);
+            if (validationErrors.length > 0) {
+                errorMessagesDiv.style.display = 'block';
+                displayErrors(errorMessagesDiv, validationErrors);
+                return;
+            }
+
+            try {
+                const response = await fetch("/myapp/backend/auth/login.php", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await handleResponse(response);
+
+                if (data.success) {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    }
+                } else {
+                    errorMessagesDiv.style.display = 'block';
+                    const errors = data.error ?
+                        (Array.isArray(data.error) ? data.error : [data.error]) :
+                        ["Login failed. Please try again."];
+                    displayErrors(errorMessagesDiv, errors);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessagesDiv.style.display = 'block';
+                // Parse error message to get the actual server error if available
+                let errorMsg = "An unexpected error occurred. Please try again.";
+                try {
+                    const errorData = JSON.parse(error.message);
+                    if (errorData.error) {
+                        errorMsg = Array.isArray(errorData.error) ? errorData.error : [errorData.error];
+                    } else {
+                        errorMsg = error.message;
+                    }
+                } catch (e) {
+                    errorMsg = error.message;
+                }
+
+                displayErrors(errorMessagesDiv, Array.isArray(errorMsg) ? errorMsg : [errorMsg]);
+            }
+        });
+
+        function validateCredentials(username, password) {
+            const errors = [];
+            const usernameRegex = /^[A-Za-z0-9_]{3,30}$/;
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{6,}$/;
+
+            if (!username) errors.push("Username is required");
+            else if (!usernameRegex.test(username)) {
+                errors.push("Username must be 3-30 characters (letters, numbers, underscores)");
+            }
+
+            if (!password) errors.push("Password is required");
+            else if (!passwordRegex.test(password)) {
+                errors.push("Password must be 6+ characters with uppercase, lowercase, and number");
+            }
+
+            return errors;
+        }
+
+        function displayErrors(container, messages) {
+            container.innerHTML = messages.map(msg =>
+                `<div class="error-message">${msg}</div>`
+            ).join('');
+        }
+
+        async function handleResponse(response) {
+            const contentType = response.headers.get('content-type');
+
+            if (!response.ok) {
+                let errorMessage = `Server error: ${response.status}`;
+                if (contentType && contentType.includes('application/json')) {
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error) {
+                            errorMessage = Array.isArray(errorData.error) ? errorData.error : [errorData.error];
+                        }
+                    } catch (jsonError) {
+                        const errorText = await response.text();
+                        errorMessage += ` - ${errorText}`;
+                    }
+                    return { error: errorMessage }; // Return the error as part of the data
+                } else {
+                    const errorText = await response.text();
+                    return { error: `Server error: ${response.status} - ${errorText}` };
+                }
+            }
+
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error(`Expected JSON but got ${contentType}`);
+            }
+
+            return response.json();
+        }
+    });
+
+</script>
 </body>
 </html>
