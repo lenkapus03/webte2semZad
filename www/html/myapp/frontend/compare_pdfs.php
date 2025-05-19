@@ -772,7 +772,8 @@ if (!isset($_SESSION['username'])) {
                             const downloadResponse = await fetch(downloadUrl, {
                                 method: 'GET',
                                 headers: {
-                                    'X-API-KEY': apiKey // Include API key in the header
+                                    'X-API-KEY': apiKey,
+                                    'X-Request-Source': 'frontend'
                                 }
                             });
 
@@ -812,7 +813,7 @@ if (!isset($_SESSION['username'])) {
         }
 
 
-            // Display comparison results
+        // Display comparison results
         function displayResults(data) {
             comparisonResults.innerHTML = '';
 

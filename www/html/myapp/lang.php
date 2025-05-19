@@ -43,6 +43,18 @@ $lang = [
         'manual' => 'Manual',
         'OpenAPI' => 'OpenAPI Documentation',
         'footer' => ' PDF Processing App. All rights reserved.',
+        'username' => 'Username',
+        'time' => 'Time',
+        'action' => 'Action',
+        'source' => 'Source',
+        'location' => 'Location',
+        'delete' => 'Delete',
+        'user_history' => 'User History',
+        'back' => 'Back',
+        'export_csv' => 'Export to CSV',
+        'items_per_page' => 'Items per page',
+
+
     ],
     'sk' => [
         'titleApp' => 'Aplikácia na spracovanie PDF',
@@ -87,6 +99,20 @@ $lang = [
         'manual' => 'Manuál',
         'OpenAPI' => 'OpenAPI Dokumentácia',
         'footer' => ' Aplikácia na spracovanie PDF. Všetky práva vyhradené.',
+        'username' => 'Používateľ',
+        'time' => 'Čas',
+        'action' => 'Akcia',
+        'source' => 'Zdroj',
+        'location' => 'Lokalita',
+        'delete' => 'Zmazať',
+        'user_history' => 'História používateľov',
+        'back' => 'Späť',
+        'export_csv' => 'Exportovať do CSV',
+        'items_per_page' => 'Položiek na stránku',
+
+
+        
+
 
 
     ]

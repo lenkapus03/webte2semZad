@@ -563,9 +563,27 @@ if (!isset($_SESSION['username'])) {
                         if (data.success && data.result_id) {
                             showMessage('success', translations[currentLang].success);
 
-                            // Set download link to the direct PDF download endpoint
-                            downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                            resultContainer.classList.remove('hidden');
+                            // Secure download implementation with headers
+                            const downloadUrl = `/myapp/backend/api/api_download_pdf.php?id=${data.result_id}`;
+                            fetch(downloadUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'X-API-KEY': apiKey,
+                                    'X-Request-Source': 'frontend'
+                                },
+                                credentials: 'include'
+                            })
+                                .then(response => response.blob())
+                                .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    downloadLink.href = url;
+                                    downloadLink.setAttribute('download', 'watermarked.pdf');
+                                    resultContainer.classList.remove('hidden');
+                                })
+                                .catch(error => {
+                                    console.error('Download error:', error);
+                                    showMessage('error', translations[currentLang].errorDownloading + error.message);
+                                });
 
                             console.log('Watermark added successfully. Result ID:', data.result_id);
                         } else {

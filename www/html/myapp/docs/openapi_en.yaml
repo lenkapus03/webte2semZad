@@ -1,0 +1,1633 @@
+openapi: 3.0.0
+info:
+  title: PDF Processing API
+  description: |
+    An API for processing PDF files that allows merging multiple PDF files into one and splitting a PDF into separate pages.
+  version: 1.0.0
+  contact:
+    name: Support
+    email: support@example.com
+
+servers:
+  - url: /myapp/backend
+    description: Base endpoint for the backend API
+
+tags:
+  - name: pdf-operations
+    description: Operations for processing PDF files
+  - name: pdf-download
+    description: Operations for downloading processed PDF files
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/api_rotate_pdf.php:
+    post:
+      summary: Rotate PDF pages
+      description: |
+        Rotates PDF pages either:
+          - all pages by the same angle (using `angle`, `page_range_type`, `from_page`, `to_page`)
+          - or individual pages using a `rotations` array (e.g., `[90, 0, 270, 180]`)
+        If both are provided, `rotations` takes precedence.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API key for user authentication
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to rotate
+                angle:
+                  type: integer
+                  enum: [90, 180, 270]
+                  description: Rotation angle for all pages (ignored if `rotations` is provided)
+                page_range_type:
+                  type: string
+                  enum: [all, custom]
+                  default: all
+                  description: Page range type (only used with `angle`)
+                from_page:
+                  type: integer
+                  description: Start page (only for `custom`)
+                to_page:
+                  type: integer
+                  description: End page (only for `custom`)
+                rotations:
+                  type: string
+                  description: |
+                    JSON array of angles for each page (e.g., `[90, 0, 270, 180]`)
+                    0 = no rotation. First element = first page.
+                  example: '[90, 0, 270, 180]'
+      responses:
+        '200':
+          description: Rotation successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result_id:
+                    type: string
+                  message:
+                    type: string
+                  debug:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: Get information about the Rotate PDF API
+      description: |
+        Returns details about this API endpoint – how it works and what parameters are supported.
+        Useful for testing and integration (e.g., with Postman or CLI).
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API key for user authentication
+      responses:
+        '200':
+          description: Successfully returned endpoint info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  endpoint:
+                    type: string
+                  description:
+                    type: string
+                  methods:
+                    type: object
+                    properties:
+                      GET:
+                        type: string
+                      POST:
+                        type: string
+                  post_parameters:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  post_response:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  download_url:
+                    type: string
+              example:
+                success: true
+                endpoint: "PDF Rotate API"
+                description: "API for rotating PDF pages"
+                methods:
+                  GET: "Get information about this API endpoint"
+                  POST: "Upload a PDF file to rotate pages"
+                post_parameters:
+                  file: "Single PDF file to rotate"
+                  angle: "Rotation angle in degrees (90, 180, or 270)"
+                  page_range_type: "Type of page range (all or custom)"
+                  from_page: "Start page number"
+                  to_page: "End page number"
+                post_response:
+                  success: "Boolean indicating success"
+                  result_id: "ID of the rotated PDF file for download"
+                  message: "Result message"
+                download_url: "/myapp/backend/api/api_download_pdf.php?id={result_id}"
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '405':
+          description: Unsupported HTTP method
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/api_compare_pdfs.php:
+    get:
+      summary: Compare PDF API Information
+      description: |
+        Returns information about this endpoint – supported methods, parameters, and response structure.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API key for user authentication
+      responses:
+        '200':
+          description: PDF comparison API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  endpoint:
+                    type: string
+                  description:
+                    type: string
+                  methods:
+                    type: object
+                    properties:
+                      GET:
+                        type: string
+                      POST:
+                        type: string
+                  post_parameters:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  post_response:
+                    type: object
+                    additionalProperties:
+                      type: string
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '405':
+          description: Unsupported HTTP method
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Compare two PDF files
+      description: |
+        Uploads two PDF files and compares their content, metadata, and images. Returns a report of differences.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API key for user authentication
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file1
+                - file2
+              properties:
+                file1:
+                  type: string
+                  format: binary
+                  description: First PDF file
+                file2:
+                  type: string
+                  format: binary
+                  description: Second PDF file
+                compare_metadata:
+                  type: boolean
+                  default: true
+                  description: Compare metadata (enabled by default)
+                compare_images:
+                  type: boolean
+                  default: true
+                  description: Compare images (enabled by default)
+                detailed_results:
+                  type: boolean
+                  default: true
+                  description: Return detailed results per page (enabled by default)
+      responses:
+        '200':
+          description: PDF comparison completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  identical:
+                    type: boolean
+                  file1_pages:
+                    type: integer
+                  file2_pages:
+                    type: integer
+                  matching_pages:
+                    type: integer
+                  metadata_match:
+                    type: boolean
+                  image_comparison:
+                    type: object
+                  detailed_results:
+                    type: array
+                    items:
+                      type: object
+                  download_url:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/api_decrypt_pdf.php:
+    get:
+      summary: Unlock PDF API Information
+      description: |
+        Returns details about this API endpoint – how it works and supported parameters.
+        Useful for testing and integration (e.g., via Postman or CLI).
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API key for user authentication
+      responses:
+        '200':
+          description: Successfully returned endpoint information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  endpoint:
+                    type: string
+                  description:
+                    type: string
+                  methods:
+                    type: object
+                    properties:
+                      GET:
+                        type: string
+                      POST:
+                        type: string
+                  post_parameters:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  post_response:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  download_url:
+                    type: string
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '405':
+          description: Unsupported HTTP method
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Unlock a password-protected PDF
+      description: |
+        Accepts a password-protected PDF file and attempts to unlock it using the provided password.
+        Returns an unlocked PDF file ready for download.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API key for user authentication
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - password
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Password-protected PDF file
+                password:
+                  type: string
+                  description: Password used to unlock the file
+      responses:
+        '200':
+          description: Successfully unlocked PDF
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result_id:
+                    type: string
+                  message:
+                    type: string
+                  download_url:
+                    type: string
+        '400':
+          description: Bad request – missing file or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '405':
+          description: Unsupported HTTP method
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/api_download_comparison.php:
+    get:
+      summary: Download PDF comparison report
+      description: |
+        Generates and downloads a PDF report containing the comparison results of two PDF files.
+        Requires `result_id` obtained from the previous comparison using `/api/api_compare_pdfs.php`.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API key for user authentication
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]+$'
+          description: Identifier of the comparison report (`result_id`)
+      responses:
+        '200':
+          description: Successful download of the PDF comparison report
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid or missing `id` identifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Comparison result not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error when generating PDF
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/api_download_pdf.php:
+    get:
+      summary: Download processed PDF file
+      description: >
+        Returns a PDF file that was generated by a previous operation (e.g., merge, rotate, protect). 
+        The file is identified using `result_id` stored in `$_SESSION`. Requires a valid API key and session.
+      tags:
+        - pdf-download
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API key for user authentication
+          schema:
+            type: string
+        - name: id
+          in: query
+          required: true
+          description: Identifier of the PDF file (stored in `$_SESSION['pdf_id']`)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful PDF file download
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid or missing `id` parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+        '404':
+          description: File does not exist or session expired
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+  /api/api_encrypt_pdf.php:
+    get:
+      summary: Information about PDF encryption API
+      description: |
+        Retrieve information about this API endpoint. This endpoint allows uploading a PDF file and securing it with a password.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API key for user authentication
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Details about available methods and parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  endpoint:
+                    type: string
+                  description:
+                    type: string
+                  methods:
+                    type: object
+                    properties:
+                      GET:
+                        type: string
+                      POST:
+                        type: string
+                  post_parameters:
+                    type: object
+                    properties:
+                      file:
+                        type: string
+                        description: PDF file to protect
+                      password:
+                        type: string
+                        description: Password for the PDF file
+                  post_response:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                      result_id:
+                        type: string
+                      message:
+                        type: string
+                  download_url:
+                    type: string
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+    post:
+      summary: Protect PDF file with password
+      description: |
+        Upload a PDF file and provide a password to secure it. The result is a `result_id` for downloading the protected file.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: API key for user authentication
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - password
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to protect with a password
+                password:
+                  type: string
+                  description: Password for the PDF
+      responses:
+        '200':
+          description: PDF successfully protected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result_id:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Missing file or password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+
+  /api/api_extract_pdf.php:
+    get:
+      summary: Information about PDF page extraction
+      description: |
+        Retrieve info about this endpoint. It allows uploading a PDF and extracting selected pages using a list of page numbers (1-based).
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API key for user authentication
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Endpoint metadata and parameter info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  endpoint: { type: string }
+                  description: { type: string }
+                  methods:
+                    type: object
+                    properties:
+                      GET: { type: string }
+                      POST: { type: string }
+                  post_parameters:
+                    type: object
+                    properties:
+                      file: { type: string, description: PDF file to process }
+                      pages_to_keep:
+                      type: string
+                      description: JSON array of pages to keep (e.g., "[1,3,5]")
+
+                  post_response:
+                    type: object
+                    properties:
+                      success: { type: boolean }
+                      result_id: { type: string }
+                      message: { type: string }
+                      kept_pages: { type: integer }
+                      removed_pages: { type: integer }
+                  download_url: { type: string }
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+    post:
+      summary: Extract selected pages from a PDF
+      description: |
+        Upload a PDF file and specify the pages (e.g., `[1,2,5]`) you want to keep. The rest will be removed.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema: { type: string }
+          description: API key for user authentication
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, pages_to_keep]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to process
+                pages_to_keep:
+                  type: string
+                  example: "[1,2,5]"
+                  description: JSON array of pages to keep (1-based)
+      responses:
+        '200':
+          description: Pages successfully extracted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  result_id: { type: string }
+                  message: { type: string }
+                  kept_pages: { type: integer }
+                  removed_pages: { type: integer }
+        '400':
+          description: Missing data or invalid format
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/api_merge_pdfs.php:
+    get:
+      summary: Info about PDF merge API
+      description: >
+        Returns meta-information about how to use the PDF merging API.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API key for user authentication
+          schema: { type: string }
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  endpoint: { type: string }
+                  description: { type: string }
+                  methods:
+                    type: object
+                    additionalProperties: { type: string }
+                  post_parameters:
+                    type: object
+                    additionalProperties: { type: string }
+                  post_response:
+                    type: object
+                    additionalProperties: { type: string }
+                  download_url: { type: string }
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+    post:
+      summary: Merge multiple PDF files into one
+      description: >
+        Upload multiple PDF files to merge into one. The result can be downloaded via `/api/api_download_pdf.php?id={result_id}`.
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API key for user authentication
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - "files[]"
+              properties:
+                "files[]":
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Array of PDF files to merge
+
+      responses:
+        '200':
+          description: Successfully merged PDF files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  result_id: { type: string }
+                  message: { type: string }
+                  file_count: { type: integer }
+        '400':
+          description: Missing or invalid files
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: Server error during PDF merge
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/api_remove_pages.php:
+    get:
+      summary: Info about removing PDF pages
+      description: Describes the API that allows removing selected pages from a PDF file.
+      tags:
+        - pdf-operations
+      parameters:
+        - in: header
+          name: X-API-Key
+          required: true
+          schema: { type: string }
+          description: API key for user authentication
+      responses:
+        '200':
+          description: Successful API description
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  endpoint: { type: string }
+                  description: { type: string }
+                  methods:
+                    type: object
+                    additionalProperties: { type: string }
+                  post_parameters:
+                    type: object
+                    properties:
+                      file: { type: string }
+                      pages_to_remove: { type: string }
+                  post_response:
+                    type: object
+                    properties:
+                      success: { type: string }
+                      result_id: { type: string }
+                      message: { type: string }
+                      removed_pages: { type: integer }
+                      remaining_pages: { type: integer }
+                  download_url: { type: string }
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+    post:
+      summary: Remove selected pages from PDF
+      description: Upload a PDF and specify pages to be removed. Returns a new PDF with only the remaining pages.
+      tags:
+        - pdf-operations
+      parameters:
+        - in: header
+          name: X-API-Key
+          required: true
+          schema: { type: string }
+          description: API key for user authentication
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, pages_to_remove]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to process
+                pages_to_remove:
+                  type: string
+                  example: '[2, 4, 6]'
+                  description: JSON array of 1-based page numbers to remove
+      responses:
+        '200':
+          description: Pages successfully removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  result_id: { type: string }
+                  message: { type: string }
+                  removed_pages: { type: integer }
+                  remaining_pages: { type: integer }
+        '400':
+          description: Missing data or invalid page format
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/api_reorder_pages.php:
+    get:
+      summary: Get information about the PDF page reorder API
+      tags:
+        - pdf-operations
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API key for user authentication
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Information about supported methods and parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  endpoint: { type: string }
+                  description: { type: string }
+                  methods: { type: object }
+                  post_parameters: { type: object }
+                  post_response: { type: object }
+                  download_url: { type: string }
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  error: { type: string }
+
+    post:
+      summary: Reorder pages in a PDF file
+      tags:
+        - pdf-operations
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, page_order]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to reorder
+                page_order:
+                  type: string
+                  description: JSON array specifying new page order (1-based)
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          description: API key for user authentication
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PDF successfully reordered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  result_id: { type: string }
+                  message: { type: string }
+        '400':
+          description: Missing or invalid input data
+        '401':
+          description: Invalid or missing API key
+        '500':
+          description: Internal server error
+
+  /api/api_split_pdf.php:
+    get:
+      tags:
+        - pdf-operations
+      summary: Get information about the PDF split API
+      description: Returns description and available methods for splitting a PDF document.
+      operationId: getSplitPdfInfo
+      responses:
+        '200':
+          description: API information loaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  endpoint: { type: string }
+                  description: { type: string }
+                  methods:
+                    type: object
+                    properties:
+                      GET: { type: string }
+                      POST: { type: string }
+                  post_parameters:
+                    type: object
+                    properties:
+                      file: { type: string }
+                  post_response:
+                    type: object
+                    properties:
+                      success: { type: boolean }
+                      result_id: { type: string }
+                      message: { type: string }
+                      page_count: { type: integer }
+                  download_url: { type: string }
+
+    post:
+      tags:
+        - pdf-operations
+      summary: Split PDF into individual pages
+      description: Upload a PDF to be split into single-page files. Result is a ZIP archive of the pages.
+      operationId: splitPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to split
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema: { type: string }
+          description: API key for user authentication
+      responses:
+        '200':
+          description: PDF successfully split
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  result_id:
+                    type: string
+                    description: ID of the resulting ZIP archive
+                  message: { type: string }
+                  page_count: { type: integer }
+        '400':
+          description: Missing file or invalid input
+        '401':
+          description: Invalid or missing API key
+        '500':
+          description: Internal server error
+
+  /api/api_watermark_pdf.php:
+    get:
+      tags:
+        - pdf-operations
+      summary: Information about the Watermark PDF API
+      description: Returns a description and available parameters for the API that adds a watermark to a PDF.
+      operationId: getWatermarkPdfInfo
+      responses:
+        '200':
+          description: API info retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  endpoint: { type: string }
+                  description: { type: string }
+                  methods:
+                    type: object
+                    properties:
+                      GET: { type: string }
+                      POST: { type: string }
+                  post_parameters:
+                    type: object
+                    properties:
+                      file: { type: string }
+                      watermark_text: { type: string }
+                      position: { type: string }
+                      opacity: { type: number }
+                      color: { type: string }
+                      font_size: { type: integer }
+                      rotation: { type: integer }
+                  post_response:
+                    type: object
+                    properties:
+                      success: { type: boolean }
+                      result_id: { type: string }
+                      message: { type: string }
+                  download_url: { type: string }
+
+    post:
+      tags:
+        - pdf-operations
+      summary: Add watermark to a PDF
+      description: Upload a PDF and add a custom text watermark with optional styling.
+      operationId: watermarkPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, watermark_text]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to apply the watermark
+                watermark_text:
+                  type: string
+                  description: Watermark text (required)
+                position:
+                  type: string
+                  enum: [center, top-left, top-right, bottom-left, bottom-right]
+                  description: Watermark position
+                opacity:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  description: Watermark transparency (0–1)
+                color:
+                  type: string
+                  pattern: '^#(?:[0-9a-fA-F]{3}){1,2}$'
+                  description: Hex color (e.g., `#000000`)
+                font_size:
+                  type: integer
+                  minimum: 1
+                  description: Font size
+                rotation:
+                  type: integer
+                  minimum: 0
+                  maximum: 360
+                  description: Rotation angle in degrees (0–360)
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema: { type: string }
+          description: API key for user authentication
+      responses:
+        '200':
+          description: Watermark successfully added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  result_id: { type: string }
+                  message: { type: string }
+        '400':
+          description: Missing file or invalid parameters
+        '401':
+          description: Invalid or missing API key
+        '500':
+          description: Internal server error
+
+  /api/api_zip_download_pdf.php:
+    get:
+      tags:
+        - pdf-download
+      summary: Download ZIP archive with individual PDF pages
+      description: |
+        Endpoint for downloading a `.zip` archive containing the split pages of a PDF. 
+        Only works if `result_id` is valid and present in the session.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            example: 5e2f6b7a3c8e4
+          description: Identifier of the split PDF (stored in session as `pdf_zip_id`)
+
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            API key for authentication. Can be provided as `X-API-Key` header or query parameter.
+
+      responses:
+        '200':
+          description: ZIP file successfully downloaded
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+
+        '400':
+          description: Missing or invalid result ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  error: { type: string }
+
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  error: { type: string }
+
+        '404':
+          description: File not found or session expired
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  error: { type: string }
+
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  error: { type: string }
+
+  /auth/login.php:
+    post:
+      tags:
+        - authentication
+      summary: User login
+      description: Authenticates the username and password. If successful, a session is created and a redirect URL is returned.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: jan.kovac
+                password:
+                  type: string
+                  format: password
+                  example: mySecret123
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  redirect: { type: string, example: /myapp/index.php }
+                  user:
+                    type: object
+                    properties:
+                      username: { type: string, example: jan.kovac }
+        '400':
+          description: Missing or invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Username must be at least 3 characters" }
+        '401':
+          description: Invalid username or password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Invalid username or password" }
+        '405':
+          description: Unsupported HTTP method
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Invalid request method" }
+
+  /auth/register.php:
+    post:
+      tags:
+        - authentication
+      summary: User registration
+      description: Creates a new user with role, password, and assigns an API key.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password, role]
+              properties:
+                username:
+                  type: string
+                  example: jan.kovac
+                password:
+                  type: string
+                  format: password
+                  example: strongPass123
+                role:
+                  type: string
+                  enum: [user, admin]
+                  example: user
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  api_key: 
+                    type: string
+                    example: 3807feff0b576a9ae715e30b930ab495ef40e4e56a3f5bed7e8bec98e08bef07
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string, example: user_id }
+                      username: { type: string, example: jan.kovac }
+        '400':
+          description: Invalid input data (username, password, role)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Password must be at least 6 characters" }
+        '409':
+          description: Username already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Username already taken" }
+        '405':
+          description: Unsupported HTTP method
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Invalid request method" }
+
+  /users_history.php:
+    get:
+      tags:
+        - admin
+      summary: Retrieve user action history
+      description: >
+        This endpoint returns a list of actions performed by users. Admin access required.
+        If the `export` query parameter is present, the response will be a CSV file.
+      parameters:
+        - in: query
+          name: export
+          schema:
+            type: boolean
+          description: If set, returns CSV instead of JSON.
+      responses:
+        '200':
+          description: User action history successfully returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    users_username:
+                      type: string
+                    time:
+                      type: string
+                      format: date-time
+                    action_type:
+                      type: string
+                    source:
+                      type: string
+                    location:
+                      type: string
+        '403':
+          description: Unauthorized access
+        '401':
+          description: Invalid API key
+      security:
+        - ApiKeyAuth: []
+
+  /users_history/{id}:
+    delete:
+      summary: Delete a specific history record by ID
+      tags:
+        - admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the history record
+      responses:
+        '200':
+          description: Record successfully deleted
+        '404':
+          description: Record not found
+        '400':
+          description: Missing data
+        '500':
+          description: Server error
+      security:
+        - ApiKeyAuth: []
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        error:
+          type: string
+          description: Error message
+      required:
+        - success
+        - error
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+
+
+
+
+
+

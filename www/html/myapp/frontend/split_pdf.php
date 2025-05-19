@@ -434,9 +434,38 @@ if (!isset($_SESSION['username'])) {
                         if (data.success && data.result_id) {
                             showMessage('success', translations[currentLang].success);
 
-                            // Set download link
-                            downloadLink.href = `/myapp/backend/pdf/download_zip_pdf.php?id=${data.result_id}`;
-                            resultContainer.classList.remove('hidden');
+                            // Secure download implementation with headers
+                            const downloadUrl = `/myapp/backend/api/api_zip_download_pdf.php?id=${data.result_id}`;
+                            fetch(downloadUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'X-API-KEY': apiKey,
+                                    'X-Request-Source': 'frontend'
+                                },
+                                credentials: 'include'
+                            })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`Download failed with status ${response.status}`);
+                                    }
+                                    return response.blob();
+                                })
+                                .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'split_pages.zip';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    window.URL.revokeObjectURL(url);
+                                    resultContainer.classList.remove('hidden');
+                                })
+
+                                .catch(error => {
+                                    console.error('Download error:', error);
+                                    showMessage('error', translations[currentLang].errorDownloading + error.message);
+                                });
 
                             console.log('PDF split successful. Result ID:', data.result_id);
                         } else {

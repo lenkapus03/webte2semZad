@@ -482,7 +482,6 @@ if (!isset($_SESSION['username'])) {
         }
 
         // Send request to the server
-        // Send request to the server
         fetch('/myapp/backend/api/api_decrypt_pdf.php', {
           method: 'POST',
           headers: {
@@ -522,30 +521,47 @@ if (!isset($_SESSION['username'])) {
                   if (data.success && data.result_id) {
                     showMessage('success', translations[currentLang].success);
 
-                    // Set download link
-                    downloadLink.href = `/myapp/backend/pdf/download_pdf.php?id=${data.result_id}`;
-                    resultContainer.classList.remove('hidden');
+                      // Modified download link handling - now with headers
+                      const downloadUrl = `/myapp/backend/api/api_download_pdf.php?id=${data.result_id}`;
+                      fetch(downloadUrl, {
+                          method: 'GET',
+                          headers: {
+                              'X-API-KEY': apiKey,
+                              'X-Request-Source': 'frontend'
+                          },
+                          credentials: 'include'
+                      })
+                          .then(response => response.blob())
+                          .then(blob => {
+                              const url = window.URL.createObjectURL(blob);
+                              downloadLink.href = url;
+                              downloadLink.setAttribute('download', 'decrypted.pdf');
+                              resultContainer.classList.remove('hidden');
+                          })
+                          .catch(error => {
+                              console.error('Download error:', error);
+                              showMessage('error', translations[currentLang].errorDownloading + error.message);
+                          });
 
-                    console.log('PDF decryption successful. Result ID:', data.result_id);
+                      console.log('PDF decryption successful. Result ID:', data.result_id);
                   } else {
-                    throw new Error(data.error || 'Unknown error');
+                      throw new Error(data.error || 'Unknown error');
                   }
                 })
-                .catch(error => {
-                  console.error('PDF Decryption Error:', error);
-                  showMessage('error', translations[currentLang].errorProcessing + error.message);
-                })
-                .finally(() => {
-                  // Re-enable button
-                  decryptPdfBtn.disabled = false;
-                });
+            .catch(error => {
+                console.error('PDF Decryption Error:', error);
+                showMessage('error', translations[currentLang].errorProcessing + error.message);
+            })
+            .finally(() => {
+                // Re-enable button
+                decryptPdfBtn.disabled = false;
+            });
       } catch (error) {
-        console.error('PDF Processing Error:', error);
-        showMessage('error', translations[currentLang].errorMerge + error.message);
+          console.error('PDF Processing Error:', error);
+          showMessage('error', translations[currentLang].errorMerge + error.message);
       } finally {
-        applyBtn.disabled = false;
+          applyBtn.disabled = false;
       }
-
     }
 
     // Show a message to the user
