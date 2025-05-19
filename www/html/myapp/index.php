@@ -326,7 +326,7 @@ $isAdmin = $_SESSION['role'] === 'admin';
     <div class="admin-section">
         <h3><i class="fas fa-user-shield"></i> <?= $t['admin_panel'] ?></h3>
         <p><?= $t['admin_panel_desc'] ?></p>
-        <a href="/myapp/users_history.html" class="btn btn-warning"><i class="fas fa-history"> </i> <?= $t['viewuserhistory'] ?></a>
+        <a href="/myapp/users_history.php" class="btn btn-warning"><i class="fas fa-history"> </i> <?= $t['viewuserhistory'] ?></a>
     </div>
 <?php endif; ?>
 

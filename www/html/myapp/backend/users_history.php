@@ -25,12 +25,35 @@ try {
 
     switch ($_SERVER['REQUEST_METHOD']) {
         case 'GET':
-            $stmt = $pdo->query("SELECT * FROM users_history ORDER BY time DESC");
+            // Pagination parameters
+            $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
+            $offset = ($page - 1) * $perPage;
+
+            // Get total count
+            $countStmt = $pdo->query("SELECT COUNT(*) as total FROM users_history");
+            $total = $countStmt->fetchColumn();
+
+            // Get paginated data
+            $stmt = $pdo->prepare("SELECT * FROM users_history ORDER BY time DESC LIMIT :limit OFFSET :offset");
+            $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->execute();
+
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if ($data === false) {
                 throw new Exception('Failed to fetch user history', 500);
             }
-            $response = $data;
+
+            $response = [
+                'data' => $data,
+                'pagination' => [
+                    'total' => (int)$total,
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'last_page' => ceil($total / $perPage)
+                ]
+            ];
             break;
 
         case 'DELETE':
