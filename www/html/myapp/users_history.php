@@ -8,366 +8,349 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin')  {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>User History – Admin</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #4285F4;
-            --secondary-color: #34A853;
-            --danger-color: #EA4335;
-            --warning-color: #FBBC05;
-            --light-color: #f8f9fa;
-            --dark-color: #343a40;
-            --border-radius: 8px;
-            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
-        }
+  <meta charset="UTF-8" />
+  <title>User History – Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root {
+      --primary-color: #4285F4;
+      --secondary-color: #34A853;
+      --danger-color: #EA4335;
+      --light-color: #f8f9fa;
+      --dark-color: #343a40;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f7;
-            color: #333;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #ddd;
-        }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f7;
+      color: #333;
+    }
 
-        .header h1 {
-            margin: 0;
-            color: var(--primary-color);
-            font-size: 2.2em;
-        }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
 
-        .btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            margin: 4px 5px;
-            cursor: pointer;
-            border-radius: var(--border-radius);
-            transition: var(--transition);
-            box-shadow: var(--box-shadow);
-            text-decoration: none;
-        }
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
 
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
+    .header h1 {
+      margin: 0;
+      color: var(--primary-color);
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        .btn-secondary {
-            background-color: var(--secondary-color);
-        }
+    .btn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      box-shadow: var(--box-shadow);
+      text-decoration: none;
+      font-size: 14px;
+      margin: 5px;
+      display: inline-block;
+    }
 
-        .btn-danger {
-            background-color: var(--danger-color);
-        }
+    .btn-secondary {
+      background-color: var(--secondary-color);
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            box-shadow: var(--box-shadow);
-            margin-top: 20px;
-        }
+    .btn-danger {
+      background-color: var(--danger-color);
+    }
 
-        thead {
-            background-color: var(--primary-color);
-            color: white;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      overflow: hidden;
+    }
 
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
+    thead {
+      background-color: var(--primary-color);
+      color: white;
+    }
 
-        tr:hover {
-            background-color: #f1f1f1;
-        }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      word-break: break-word;
+    }
 
-        .delete-btn {
-            background-color: var(--danger-color);
-            color: white;
-            padding: 6px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
 
-        .delete-btn:hover {
-            opacity: 0.85;
-        }
+    .delete-btn {
+      background-color: var(--danger-color);
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
 
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
+    .per-page-selector, .pagination {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
 
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            gap: 5px;
-        }
+    .pagination button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: var(--transition);
+    }
 
-        .pagination button {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            background-color: white;
-            cursor: pointer;
-            border-radius: 4px;
-        }
+    .pagination button.active {
+      background-color: var(--secondary-color);
+    }
 
-        .pagination button.active {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
 
-        .pagination button:hover:not(.active) {
-            background-color: #f1f1f1;
-        }
+      thead {
+        display: none;
+      }
 
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+      tr {
+        margin-bottom: 15px;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 10px;
+      }
 
-        .per-page-selector {
-            margin-top: 20px;
-            text-align: center;
-        }
+      td {
+        border: none;
+        padding: 8px 10px;
+        position: relative;
+        text-align: left;
+      }
 
-        .per-page-selector select {
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-    </style>
+      td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        margin-bottom: 4px;
+        color: var(--primary-color);
+      }
+
+      .delete-btn {
+        margin-top: 8px;
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-
-<div class="header">
+<div class="container">
+  <div class="header">
     <h1><i class="fas fa-history"></i> User History</h1>
     <div>
-        <a href="index.php" class="btn"><i class="fas fa-arrow-left"></i> Back</a>
-        <button id="exportCsvBtn" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export to CSV</button>
+      <a href="index.php" class="btn"><i class="fas fa-arrow-left"></i> Back</a>
+      <button id="exportCsvBtn" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export to CSV</button>
     </div>
-</div>
+  </div>
 
-<table>
+  <table>
     <thead>
     <tr>
-        <th>Username</th>
-        <th>Time</th>
-        <th>Action</th>
-        <th>Source</th>
-        <th>Location</th>
-        <th>Delete</th>
+      <th>Username</th>
+      <th>Time</th>
+      <th>Action</th>
+      <th>Source</th>
+      <th>Location</th>
+      <th>Delete</th>
     </tr>
     </thead>
-    <tbody id="historyBody">
-    </tbody>
-</table>
+    <tbody id="historyBody"></tbody>
+  </table>
 
-<div class="per-page-selector">
+  <div class="per-page-selector">
     <label for="perPage">Items per page:</label>
     <select id="perPage">
-        <option value="10">10</option>
-        <option value="25">25</option>
-        <option value="50">50</option>
-        <option value="100">100</option>
+      <option value="10">10</option>
+      <option value="25">25</option>
+      <option value="50">50</option>
+      <option value="100">100</option>
     </select>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
 </div>
 
-<div class="pagination" id="pagination"></div>
-
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const tbody = document.querySelector("#historyBody");
-        const paginationDiv = document.getElementById("pagination");
-        const perPageSelect = document.getElementById("perPage");
+  document.addEventListener("DOMContentLoaded", () => {
+    const tbody = document.querySelector("#historyBody");
+    const paginationDiv = document.getElementById("pagination");
+    const perPageSelect = document.getElementById("perPage");
 
-        let currentPage = 1;
-        let perPage = 10;
-        let totalPages = 1;
+    let currentPage = 1;
+    let perPage = 10;
+    let totalPages = 1;
 
-        // Initialize the page
-        perPageSelect.value = perPage;
+    perPageSelect.value = perPage;
+    loadUserHistory();
+
+    function loadUserHistory() {
+      const url = `/myapp/backend/users_history.php?page=${currentPage}&per_page=${perPage}`;
+
+      fetch(url, { credentials: "include" })
+        .then(response => {
+          if (!response.ok) {
+            return response.text().then(text => { throw new Error(text); });
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (Array.isArray(data.data)) {
+            renderTable(data.data);
+            updatePagination(data.pagination);
+          } else {
+            showError(data.error || "Unknown error");
+          }
+        })
+        .catch(error => {
+          showError(error.message);
+          console.error(error);
+        });
+    }
+
+    function renderTable(entries) {
+      tbody.innerHTML = "";
+      entries.forEach(entry => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td data-label="Username">${entry.users_username}</td>
+          <td data-label="Time">${entry.time}</td>
+          <td data-label="Action">${entry.action_type}</td>
+          <td data-label="Source">${entry.source}</td>
+          <td data-label="Location">${entry.location}</td>
+          <td data-label="Delete">
+            <button class="delete-btn" data-username="${entry.users_username}" data-time="${entry.time}">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.querySelectorAll(".delete-btn").forEach(button => {
+        button.addEventListener("click", function () {
+          const username = this.dataset.username;
+          const time = this.dataset.time;
+          if (confirm(`Are you sure you want to delete the record for ${username} at ${time}?`)) {
+            deleteHistoryEntry(username, time, this.closest("tr"));
+          }
+        });
+      });
+    }
+
+    function updatePagination(pagination) {
+      totalPages = pagination.last_page;
+      paginationDiv.innerHTML = "";
+
+      const prevBtn = document.createElement("button");
+      prevBtn.textContent = "«";
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.addEventListener("click", () => {
+        currentPage--;
         loadUserHistory();
+      });
+      paginationDiv.appendChild(prevBtn);
 
-        function loadUserHistory() {
-            const url = `/myapp/backend/users_history.php?page=${currentPage}&per_page=${perPage}`;
+      for (let i = 1; i <= totalPages; i++) {
+        const pageBtn = document.createElement("button");
+        pageBtn.textContent = i;
+        if (i === currentPage) pageBtn.classList.add("active");
+        pageBtn.addEventListener("click", () => {
+          currentPage = i;
+          loadUserHistory();
+        });
+        paginationDiv.appendChild(pageBtn);
+      }
 
-            fetch(url, {
-                credentials: "include"
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(errorText => {
-                            throw new Error(errorText || 'Network response was not ok');
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.data && Array.isArray(data.data)) {
-                        renderTable(data.data);
-                        updatePagination(data.pagination);
-                    } else {
-                        showError(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    showError(error.message);
-                    console.error('Fetch error:', error);
-                });
-        }
+      const nextBtn = document.createElement("button");
+      nextBtn.textContent = "»";
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.addEventListener("click", () => {
+        currentPage++;
+        loadUserHistory();
+      });
+      paginationDiv.appendChild(nextBtn);
+    }
 
-        function renderTable(entries) {
-            tbody.innerHTML = "";
-            entries.forEach(entry => {
-                const tr = document.createElement("tr");
-
-                tr.innerHTML = `
-                <td>${entry.users_username}</td>
-                <td>${entry.time}</td>
-                <td>${entry.action_type}</td>
-                <td>${entry.source}</td>
-                <td>${entry.location}</td>
-                <td>
-                    <button class="delete-btn" data-username="${entry.users_username}" data-time="${entry.time}">🗑️</button>
-                </td>
-            `;
-
-                tbody.appendChild(tr);
-            });
-
-            // Attach delete event listeners
-            document.querySelectorAll(".delete-btn").forEach(button => {
-                button.addEventListener("click", function() {
-                    const username = this.dataset.username;
-                    const time = this.dataset.time;
-
-                    if (!confirm(`Are you sure you want to delete the record for ${username} at ${time}?`)) return;
-
-                    deleteHistoryEntry(username, time, this.closest('tr'));
-                });
-            });
-        }
-
-        function updatePagination(pagination) {
-            totalPages = pagination.last_page;
-            paginationDiv.innerHTML = '';
-
-            // Previous button
-            const prevButton = document.createElement("button");
-            prevButton.textContent = "«";
-            prevButton.disabled = currentPage === 1;
-            prevButton.addEventListener("click", () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    loadUserHistory();
-                }
-            });
-            paginationDiv.appendChild(prevButton);
-
-            // Page buttons
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
-
-            for (let i = startPage; i <= endPage; i++) {
-                const pageButton = document.createElement("button");
-                pageButton.textContent = i;
-                if (i === currentPage) {
-                    pageButton.classList.add("active");
-                }
-                pageButton.addEventListener("click", () => {
-                    currentPage = i;
-                    loadUserHistory();
-                });
-                paginationDiv.appendChild(pageButton);
-            }
-
-            // Next button
-            const nextButton = document.createElement("button");
-            nextButton.textContent = "»";
-            nextButton.disabled = currentPage === totalPages;
-            nextButton.addEventListener("click", () => {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    loadUserHistory();
-                }
-            });
-            paginationDiv.appendChild(nextButton);
-        }
-
-        function deleteHistoryEntry(username, time, rowElement) {
-            fetch("/myapp/backend/users_history.php", {
-                method: "DELETE",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ username, time })
-            })
-                .then(res => {
-                    if (!res.ok) {
-                        return res.text().then(errorText => {
-                            throw new Error(errorText || 'Network response was not ok');
-                        });
-                    }
-                    return res.json();
-                })
-                .then(response => {
-                    if (response.success) {
-                        // Reload current page after deletion to maintain pagination state
-                        loadUserHistory();
-                    } else {
-                        alert(response.error || "Failed to delete entry.");
-                    }
-                })
-                .catch(error => {
-                    alert("Error: " + error.message);
-                    console.error('Delete error:', error);
-                });
-        }
-
-        function showError(message) {
-            tbody.innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${message}</td></tr>`;
-            paginationDiv.innerHTML = '';
-        }
-
-        // Items per page change handler
-        perPageSelect.addEventListener("change", () => {
-            perPage = parseInt(perPageSelect.value);
-            currentPage = 1;
+    function deleteHistoryEntry(username, time, row) {
+      fetch("/myapp/backend/users_history.php", {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, time })
+      })
+        .then(res => res.json())
+        .then(response => {
+          if (response.success) {
             loadUserHistory();
+          } else {
+            alert(response.error || "Failed to delete entry.");
+          }
+        })
+        .catch(error => {
+          alert("Error: " + error.message);
         });
+    }
 
-        // CSV Export button
-        document.getElementById("exportCsvBtn").addEventListener("click", () => {
-            window.location.href = "/myapp/backend/users_history.php?export=1";
-        });
+    function showError(msg) {
+      tbody.innerHTML = `<tr><td colspan="6" style="color:red;">${msg}</td></tr>`;
+      paginationDiv.innerHTML = '';
+    }
+
+    perPageSelect.addEventListener("change", () => {
+      perPage = parseInt(perPageSelect.value);
+      currentPage = 1;
+      loadUserHistory();
     });
+
+    document.getElementById("exportCsvBtn").addEventListener("click", () => {
+      window.location.href = "/myapp/backend/users_history.php?export=1";
+    });
+  });
 </script>
 </body>
 </html>
