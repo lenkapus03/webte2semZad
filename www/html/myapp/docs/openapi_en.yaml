@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: PDF Processing API
   description: |
-    An API for processing PDF files that allows merging multiple PDF files into one and splitting a PDF into separate pages.
+    An API for processing PDF files.
   version: 1.0.0
   contact:
     name: Support

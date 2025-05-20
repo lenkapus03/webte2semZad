@@ -126,15 +126,15 @@ if (!isset($_SESSION['username'])) {
 <body>
 <div class="container">
         <div class="navigation">
-            <a href="/myapp/index.php"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+            <a href="/myapp/index.php" id="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
         </div>
 
         <div class="language-switcher">
             <a href="#" id="lang-en">English</a> | <a href="#" id="lang-sk">Slovensky</a>
         </div>
 
-        <h1><i class="fas fa-book"></i> PDF Processing API Documentation</h1>
-        <p>This documentation provides details on how to use the PDF Processing API endpoints for merging and splitting PDF files.</p>
+        <h1 id="title" ><i class="fas fa-book"></i> PDF Processing App API Documentation</h1>
+        <p id="description">This documentation provides an overview of the PDF processing API. It is intended for registered users and ensures efficient and secure access to the application's functionality.</p>
 
 
     <div id="swagger-ui"></div>
@@ -143,6 +143,26 @@ if (!isset($_SESSION['username'])) {
 <script src="https://unpkg.com/swagger-ui-dist@4/swagger-ui-bundle.js"></script>
 <script src="https://unpkg.com/swagger-ui-dist@4/swagger-ui-standalone-preset.js"></script>
 <script>
+
+    const translations = {
+        en: {
+            backLink: 'Back to Dashboard',
+            title: 'PDF Processing App API Documentation',
+            description: 'This documentation provides an overview of the PDF processing API. It is intended for registered users and ensures efficient and secure access to the application\'s functionality.'
+        },
+        sk: {
+            backLink: 'Späť na prehľad',
+            title: 'Aplikácia na spracovanie PDF API Dokumentácia',
+            description: 'Táto dokumentácia poskytuje prehľad o API na spracovanie PDF súborov. Je určená pre registrovaných používateľov a zabezpečuje efektívny a bezpečný prístup k funkcionalitám aplikácie.'
+        }
+    };
+
+    function translatePage(lang) {
+        document.getElementById('back-link').innerHTML = `<i class="fas fa-arrow-left"></i> ${translations[lang].backLink}`;
+        document.getElementById('title').textContent = translations[lang].title;
+        document.getElementById('description').textContent = translations[lang].description;
+    }
+
     function loadSwaggerUI(lang) {
         const file = lang === 'en' ? '../docs/openapi_en.yaml' : '../docs/openapi.yaml';
         SwaggerUIBundle({
@@ -167,16 +187,19 @@ if (!isset($_SESSION['username'])) {
     window.onload = function () {
         // Default language
         loadSwaggerUI('sk');
+        translatePage('sk');
 
         // Language switchers
         document.getElementById('lang-en').addEventListener('click', function (e) {
             e.preventDefault();
             loadSwaggerUI('en');
+            translatePage('en');
         });
 
         document.getElementById('lang-sk').addEventListener('click', function (e) {
             e.preventDefault();
             loadSwaggerUI('sk');
+            translatePage('sk');
         });
     };
 </script>

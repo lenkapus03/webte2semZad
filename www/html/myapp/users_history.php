@@ -193,10 +193,10 @@ $t = $lang[$selectedLang];
      <h1><i class="fas fa-history"></i> <?= $t['viewuserhistory'] ?></h1>
     <div>
     <a href="index.php?lang=<?= $selectedLang ?>" class="btn"><i class="fas fa-arrow-left"></i> <?= $t['back'] ?></a>
-    <button id="exportCsvBtn" class="btn btn-secondary"><i class="fas fa-file-csv"></i> <?= $t['download_manual'] ?></button>
+    <button id="exportCsvBtn" class="btn btn-secondary"><i class="fas fa-file-csv"></i> <?= $t['download_CSV'] ?></button>
     </div>
     <div class="language-switcher" style="text-align:right; margin:10px 0;">
-  <a href="?lang=sk">English</a> | <a href="?lang=en">Slovensky</a>
+  <a href="?lang=en">English</a> | <a href="?lang=sk">Slovensky</a>
 </div>
   </div>
 
